@@ -1,3 +1,17 @@
+---
+title: Shadow Log
+emoji: 📊
+colorFrom: green
+colorTo: indigo
+sdk: streamlit
+sdk_version: 1.42.2
+app_file: app.py
+pinned: false
+python_version: 3.11.11
+---
+
+Hugging Face demo : https://huggingface.co/spaces/berangerthomas/shadowlog
+
 # 🔐 ShadowLog  
 **Because attacks hide… but your logs don’t.**  
 *A Streamlit-Powered Cyber Threat Illuminator*  
