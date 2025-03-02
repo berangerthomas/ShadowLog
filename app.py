@@ -5,32 +5,32 @@ import streamlit as st
 from config.log_definitions import log_definitions
 from utils.log2pandas import LogParser
 
-st.title("Analyseur de Logs")
+st.title("Log Analyzer")
 
-# Zone d'upload par drag and drop
-uploaded_file = st.file_uploader("Déposez votre fichier log")
+# Upload area by drag and drop
+uploaded_file = st.file_uploader("Drop your log file here")
 
-# Menu déroulant pour choisir le type de log
+# Dropdown menu to choose the log type
 
-# Extraire les types de log à partir du fichier de configuration
+# Extract log types from the configuration file
 log_types = list(log_definitions.keys())
 
-log_type = st.selectbox("Sélectionnez le type de log", options=log_types)
+log_type = st.selectbox("Select log type", options=log_types)
 
-# Bouton d'analyse
-if st.button("Analyser"):
+# Analyze button
+if st.button("Analyze"):
     if uploaded_file is not None:
-        # Sauvegarder temporairement le fichier uploader
+        # Temporarily save the uploaded file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".log") as tmp_file:
             tmp_file.write(uploaded_file.getbuffer())
             tmp_file_path = tmp_file.name
 
-        # Créer une instance de LogParser avec le chemin temporaire et le type de log
+        # Create an instance of LogParser with the temporary path and log type
         parser = LogParser(tmp_file_path, log_type)
-        # Analyser le fichier et récupérer le DataFrame
+        # Parse the file and get the DataFrame
         parsed_df = parser.parse_file()
-        # Afficher les premières lignes du DataFrame résultat
-        st.write("DataFrame résultant:")
+        # Display the first rows of the resulting DataFrame
+        st.write("Resulting DataFrame:")
         st.dataframe(parsed_df)
     else:
-        st.error("Veuillez charger un fichier log.")
+        st.error("Please upload a log file.")
