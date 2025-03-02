@@ -2,7 +2,8 @@ name: Sync to Hugging Face Space
 
 on:
   push:
-    branches: [ main ] 
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   sync-to-hub:
