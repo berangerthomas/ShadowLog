@@ -18,6 +18,8 @@ class LogParser:
 
     def parse_line(self, line):
         """Parse une ligne du fichier log en utilisant la définition fournie."""
+        # Commencer par remplacer les [ et ] par des espaces
+        line = line.replace("[", " ").replace("]", " ")
         tokens = line.strip().split()
         # On ignore la ligne si elle ne contient pas assez de tokens
         if len(tokens) < len(self.log_definition["fields"]):
@@ -36,18 +38,40 @@ class LogParser:
                 except IndexError:
                     value = None
 
-            # Nettoyage des caractères qui entourent la valeur (crochets, parenthèses, etc.)
-            if value:
-                value = value.strip("[](){}<>")
-
             # Conversion du type
             if "type" in field:
                 typ = field["type"]
                 if typ == "datetime":
-                    try:
-                        # Format typique utilisé dans nos logs
-                        value = datetime.strptime(value, "%a %b %d %H:%M:%S %Y")
-                    except Exception:
+                    formats = [
+                        "%a %b %d %H:%M:%S %Y",  # Format typique
+                        "%Y-%m-%d %H:%M:%S",  # ISO-like format
+                        "%d/%m/%Y %H:%M:%S",  # European format
+                        "%m/%d/%Y %H:%M:%S",  # US format
+                        "%Y%m%d%H%M%S",  # Compact format
+                        "%Y-%m-%dT%H:%M:%S",  # ISO format
+                        "%Y-%m-%dT%H:%M:%S.%f",  # ISO with microseconds
+                        "%b %d %H:%M:%S",  # Jun 14 15:16:01
+                    ]
+
+                    for date_format in formats:
+                        try:
+                            # Si l'année n'est pas présente dans le format,
+                            # on l'ajoute en utilisant l'année actuelle
+                            if "%Y" not in date_format:
+                                # Add current year to the date string
+                                current_year = datetime.now().year
+                                value_with_year = f"{value} {current_year}"
+                                # Add year to format string
+                                format_with_year = f"{date_format} %Y"
+                                value = datetime.strptime(
+                                    value_with_year, format_with_year
+                                )
+                            else:
+                                value = datetime.strptime(value, date_format)
+                            break
+                        except ValueError:
+                            continue
+                    else:  # No formats matched
                         value = None
                 elif typ == "direction":
                     value = "download" if value == "o" else "upload"

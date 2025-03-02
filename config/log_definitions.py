@@ -58,4 +58,24 @@ log_definitions = {
             {"name": "record_type", "pos": 4, "type": str},
         ],
     },
+    "linux_log": {
+        "sep": " ",
+        "fields": [
+            {"name": "datetime", "pos": slice(0, 3), "type": "datetime"},
+            {"name": "level", "pos": 3, "type": str},
+            {"name": "component", "pos": 4, "type": str},
+            {"name": "pid", "pos": 5, "type": str},
+            {"name": "Content", "pos": slice(6, None), "type": str},
+        ],
+    },
+    "ssh_log": {
+        "sep": " ",
+        "fields": [
+            {"name": "datetime", "pos": slice(0, 3), "type": "datetime"},
+            {"name": "level", "pos": 3, "type": str},
+            {"name": "component", "pos": 4, "type": str},
+            {"name": "pid", "pos": 5, "type": str},
+            {"name": "Content", "pos": slice(6, None), "type": str},
+        ],
+    },
 }
