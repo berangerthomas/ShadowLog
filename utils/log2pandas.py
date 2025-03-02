@@ -1,5 +1,7 @@
 from datetime import datetime
+
 import pandas as pd
+
 from config.log_definitions import log_definitions
 
 
@@ -15,6 +17,49 @@ class LogParser:
         self.log_definition = log_definitions[log_type]
 
     def parse_line(self, line):
+        """Parse une ligne du fichier log en utilisant la définition fournie."""
+        tokens = line.strip().split()
+        # On ignore la ligne si elle ne contient pas assez de tokens
+        if len(tokens) < len(self.log_definition["fields"]):
+            return None
+
+        entry = {}
+        for field in self.log_definition["fields"]:
+            pos = field["pos"]
+
+            # Extraction de la valeur selon la position indiquée
+            if isinstance(pos, slice):
+                value = " ".join(tokens[pos])
+            else:
+                try:
+                    value = tokens[pos]
+                except IndexError:
+                    value = None
+
+            # Nettoyage des caractères qui entourent la valeur (crochets, parenthèses, etc.)
+            if value:
+                value = value.strip("[](){}<>")
+
+            # Conversion du type
+            if "type" in field:
+                typ = field["type"]
+                if typ == "datetime":
+                    try:
+                        # Format typique utilisé dans nos logs
+                        value = datetime.strptime(value, "%a %b %d %H:%M:%S %Y")
+                    except Exception:
+                        value = None
+                elif typ == "direction":
+                    value = "download" if value == "o" else "upload"
+                else:
+                    try:
+                        value = typ(value)
+                    except Exception:
+                        pass
+
+            entry[field["name"]] = value
+
+        return entry
         """Parse une ligne du fichier log en utilisant la définition fournie."""
         tokens = line.strip().split()
         # On ignore la ligne si elle ne contient pas assez de tokens

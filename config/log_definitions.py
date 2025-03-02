@@ -21,13 +21,9 @@ log_definitions = {
     "apache_access_log": {
         "sep": " ",
         "fields": [
-            {"name": "remote_host", "pos": 0, "type": str},
-            {"name": "logname", "pos": 1, "type": str},
-            {"name": "user", "pos": 2, "type": str},
-            {"name": "datetime", "pos": slice(3, 5), "type": "datetime"},
-            {"name": "request", "pos": 5, "type": str},
-            {"name": "status", "pos": 6, "type": int},
-            {"name": "bytes_sent", "pos": 7, "type": int},
+            {"name": "datetime", "pos": slice(0, 5), "type": "datetime"},
+            {"name": "status", "pos": 5, "type": int},
+            {"name": "message", "pos": slice(6, None), "type": str},
         ],
     },
     "firewall_log": {
