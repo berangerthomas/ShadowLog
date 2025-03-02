@@ -1,4 +1,4 @@
-# 🔐 SHADOWLOG  
+# 🔐 ShadowLog  
 **Because attacks hide… but your logs don’t.**  
 *A Streamlit-Powered Cyber Threat Illuminator*  
 
