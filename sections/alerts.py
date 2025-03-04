@@ -11,6 +11,47 @@ if "parsed_df" not in st.session_state or st.session_state.parsed_df is None:
 else:
     df = st.session_state.parsed_df
 
+    error_patterns = [
+        "error",
+        "critical",
+        "fatal",
+        "fail",
+        "exception",
+        "crash",
+        "timeout",
+    ]
+
+    possible_level_cols = [
+        "level",
+        "severity",
+        "log_level",
+        "type",
+        "status",
+        "content",
+        "message",
+    ]
+
+    # Function to identify errors by keywords
+    def detect_errors(dataframe, cols_to_search=None):
+        if cols_to_search is None:
+            # Search in all textual columns
+            cols_to_search = dataframe.select_dtypes(include=["object"]).columns
+
+        # Create a mask for rows containing errors
+        error_mask = pd.Series(False, index=dataframe.index)
+
+        for col in cols_to_search:
+            if col in dataframe.columns:  # Make sure the column exists
+                col_mask = (
+                    dataframe[col]
+                    .astype(str)
+                    .str.contains("|".join(error_patterns), case=False, na=False)
+                )
+                error_mask = error_mask | col_mask
+
+        # Return only the rows with errors
+        return dataframe[error_mask].copy()
+
     # Display overall statistics
     st.subheader("Overview of logs")
     col1, col2, col3 = st.columns(3)
@@ -21,42 +62,27 @@ else:
 
     with col2:
         # Check if the 'level' column exists, otherwise look for a similar column
-        level_col = None
-        possible_level_cols = ["level", "severity", "log_level", "type", "status"]
-        for col in possible_level_cols:
-            if col in df.columns:
-                level_col = col
-                break
+        level_cols = None
+        level_cols = [
+            col
+            for col in df.columns
+            if any(
+                possible_col.lower() == col.lower()
+                for possible_col in possible_level_cols
+            )
+        ]
 
-        if level_col:
-            error_count = df[
-                df[level_col]
-                .str.upper()
-                .isin(["ERROR", "CRITICAL", "FATAL", "FAIL", "I"])
-            ].shape[0]
+        if level_cols:
+            # Create a boolean mask for rows containing errors in any relevant column
+            error_df = detect_errors(df, level_cols)
+            error_count = len(error_df)
+
             error_percent = (
                 (error_count / total_entries) * 100 if total_entries > 0 else 0
             )
             st.metric("Error entries", f"{error_count} ({error_percent:.1f}%)")
         else:
-            # Search in the entire log text if no specific column is found
-            text_col = (
-                df.select_dtypes(include=["object"]).columns[0]
-                if not df.select_dtypes(include=["object"]).empty
-                else None
-            )
-            if text_col:
-                error_count = df[
-                    df[text_col].str.contains(
-                        "ERROR|CRITICAL|FATAL|FAIL|EXCEPTION", case=False, na=False
-                    )
-                ].shape[0]
-                error_percent = (
-                    (error_count / total_entries) * 100 if total_entries > 0 else 0
-                )
-                st.metric("Error entries", f"{error_count} ({error_percent:.1f}%)")
-            else:
-                st.metric("Error entries", "Not detectable")
+            st.metric("Error entries", "Not detectable")
 
     with col3:
         # Search for a datetime type column
@@ -88,47 +114,20 @@ else:
     # Detection of critical errors
     st.subheader("Detected critical errors")
 
-    # Function to identify errors by keywords
-    def detect_errors(dataframe):
-        # Search in all textual columns
-        error_patterns = [
-            "error",
-            "critical",
-            "fatal",
-            "fail",
-            "exception",
-            "crash",
-            "timeout",
-        ]
-
-        error_df = pd.DataFrame()
-        for col in dataframe.select_dtypes(include=["object"]).columns:
-            mask = dataframe[col].str.contains(
-                "|".join(error_patterns), case=False, na=False
-            )
-            if error_df.empty:
-                error_df = dataframe[mask].copy()
-            else:
-                error_df = pd.concat([error_df, dataframe[mask]]).drop_duplicates()
-
-        return error_df
-
-    error_logs = detect_errors(df)
-
-    if not error_logs.empty:
-        st.write(f"**{len(error_logs)} critical errors detected**")
-        st.dataframe(error_logs)
+    if not error_df.empty:
+        st.write(f"**{len(error_df)} critical errors detected**")
+        st.dataframe(error_df)
 
         # Extraction of the most common error types
-        if len(error_logs) > 5:
+        if len(error_df) > 5:
             st.subheader("Frequent error types")
             error_types = {}
 
             # Browse textual columns to extract error patterns
-            for col in error_logs.select_dtypes(include=["object"]).columns:
+            for col in error_df.select_dtypes(include=["object"]).columns:
                 for pattern in ["error", "exception", "fail"]:
-                    pattern_errors = error_logs[
-                        error_logs[col].str.contains(pattern, case=False, na=False)
+                    pattern_errors = error_df[
+                        error_df[col].str.contains(pattern, case=False, na=False)
                     ]
                     if not pattern_errors.empty:
                         # Extract error context (words after the pattern)
@@ -149,28 +148,28 @@ else:
             sorted_errors = sorted(
                 error_types.items(), key=lambda x: x[1], reverse=True
             )[:10]
-            error_df = pd.DataFrame(
+            error_types_df = pd.DataFrame(
                 sorted_errors, columns=["Error type", "Occurrences"]
             )
-            st.dataframe(error_df)
+            st.dataframe(error_types_df)
 
             # Visualization of errors
             if timestamp_col:
                 st.subheader("Temporal distribution of errors")
 
                 # Convert to datetime if necessary
-                if not pd.api.types.is_datetime64_any_dtype(error_logs[timestamp_col]):
+                if not pd.api.types.is_datetime64_any_dtype(error_df[timestamp_col]):
                     try:
-                        error_logs[timestamp_col] = pd.to_datetime(
-                            error_logs[timestamp_col]
+                        error_df[timestamp_col] = pd.to_datetime(
+                            error_df[timestamp_col]
                         )
                     except:
                         pass
 
-                if pd.api.types.is_datetime64_any_dtype(error_logs[timestamp_col]):
+                if pd.api.types.is_datetime64_any_dtype(error_df[timestamp_col]):
                     # Group by time period
                     error_count = (
-                        error_logs.groupby(pd.Grouper(key=timestamp_col, freq="1H"))
+                        error_df.groupby(pd.Grouper(key=timestamp_col, freq="1h"))
                         .size()
                         .reset_index()
                     )
@@ -293,7 +292,7 @@ else:
             st.error(f"Unable to analyze the temporal distribution of logs: {e}")
 
     # Detection of suspicious event sequences
-    if timestamp_col and level_col:
+    if timestamp_col and level_cols:
         st.subheader("Unusual event sequences")
         try:
             # Search for consecutive error sequences
@@ -302,7 +301,13 @@ else:
 
             current_sequence = []
             for i, row in df_sorted.iterrows():
-                if str(row[level_col]).upper() in ["ERROR", "CRITICAL", "FATAL"]:
+                # Check if any of the columns contain error levels
+                is_error = False
+                for col in level_cols:
+                    if str(row[col]).upper() in ["ERROR", "CRITICAL", "FATAL"]:
+                        is_error = True
+                        break
+                if is_error:
                     current_sequence.append(i)
                 else:
                     if len(current_sequence) >= 3:  # At least 3 consecutive errors
@@ -334,7 +339,7 @@ else:
     # Recommendations
     st.subheader("Recommendations")
 
-    if not error_logs.empty:
+    if not error_df.empty:
         st.warning(
             "⚠️ Critical errors have been detected. Review the entries in red for more details."
         )
@@ -356,5 +361,5 @@ else:
             "⚠️ Sequences of consecutive errors have been detected, which may indicate systemic issues."
         )
 
-    if error_logs.empty and ("anomaly_points" not in locals() or anomaly_points.empty):
+    if error_df.empty and ("anomaly_points" not in locals() or anomaly_points.empty):
         st.success("✅ No major issues detected in the analyzed logs.")
