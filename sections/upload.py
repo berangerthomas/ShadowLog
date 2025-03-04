@@ -23,13 +23,30 @@ uploaded_file = st.file_uploader("Choose a log file")
 
 # Get available log types from log_definitions
 log_types = list(log_definitions.keys())
-# Set default log type if not already in session state
-if "log_type" not in st.session_state:
-    st.session_state.log_type = log_types[0]  # Default to first log type
 
-st.session_state.log_type = st.selectbox(
+# Set default log type if not already in session state
+# Initialize log_type in session state if not present
+if "log_type" not in st.session_state:
+    st.session_state.log_type = log_types[0]  # Start with first log type as default
+    st.session_state.user_selected = False  # Track if user manually selected a log type
+
+# Check if a new file was uploaded and update suggested log type
+if uploaded_file is not None and not st.session_state.get("user_selected", False):
+    filename = uploaded_file.name.lower()
+    for log_type in log_types:
+        if log_type.lower() in filename:
+            st.session_state.log_type = log_type
+            break
+
+# Display the selectbox
+selected_log_type = st.selectbox(
     "Select log type", log_types, index=log_types.index(st.session_state.log_type)
 )
+
+# Update session state and mark as user-selected when changed
+if selected_log_type != st.session_state.log_type:
+    st.session_state.log_type = selected_log_type
+    st.session_state.user_selected = True
 
 # Store the parsed dataframe in the session state
 if "parsed_df" not in st.session_state:

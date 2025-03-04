@@ -1,5 +1,5 @@
 log_definitions = {
-    "apache_access": {
+    "apache": {
         "sep": " ",
         "fields": [
             {"name": "datetime", "pos": slice(0, 5), "type": "datetime"},
