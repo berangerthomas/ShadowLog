@@ -56,10 +56,10 @@ if uploaded_file is not None:
                     st.session_state.parsed_df = parser.parse_file()
 
                     # Display a success message and the dataframe
-                    st.success("Log file successfully analyzed!")
+                    st.success("Log file successfully parsed!")
                     # st.dataframe(st.session_state.parsed_df)
                 except Exception as e:
-                    st.error(f"Error analyzing the file: {e}")
+                    st.error(f"Error parsing the file: {e}")
                 finally:
                     # Clean up the temporary file
                     os.unlink(tmp_path)
@@ -110,5 +110,5 @@ if uploaded_file is not None:
 
 # Display the dataframe if available
 if st.session_state.parsed_df is not None:
-    st.subheader("Analyzed log data")
+    st.subheader("Parsed log data")
     st.dataframe(st.session_state.parsed_df)

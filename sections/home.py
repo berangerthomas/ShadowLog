@@ -36,7 +36,7 @@ with col1:
 
     st.subheader("🔍 Advanced Parsing")
     st.write("""
-    Automatically detect log formats or configure custom parsing rules.
+    Configure custom parsing rules to extract data from your logs.
     Extract timestamp, log level, and message content with ease.
     """)
 
