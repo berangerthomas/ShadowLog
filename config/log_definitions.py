@@ -2,7 +2,7 @@ log_definitions = {
     "apache": {
         "sep": " ",
         "fields": [
-            {"name": "datetime", "pos": slice(0, 5), "type": "datetime"},
+            {"name": "datetime", "pos": slice(1, 5), "type": "datetime"},
             {"name": "status", "pos": 5, "type": int},
             {"name": "message", "pos": slice(6, None), "type": str},
         ],
@@ -42,17 +42,30 @@ log_definitions = {
     "linux": {
         "sep": " ",
         "fields": [
-            {"name": "datetime", "pos": slice(0, 3), "type": "datetime"},
+            {"name": "datetime", "pos": slice(1, 3), "type": "datetime"},
             {"name": "level", "pos": 3, "type": str},
             {"name": "component", "pos": 4, "type": str},
             {"name": "pid", "pos": 5, "type": str},
             {"name": "Content", "pos": slice(6, None), "type": str},
         ],
     },
+    "nginx": {
+        "sep": " ",
+        "fields": [
+            {"name": "time", "pos": slice(1, 2), "type": "datetime"},
+            {"name": "remote_ip", "pos": 2, "type": str},
+            {"name": "remote_user", "pos": 3, "type": str},
+            {"name": "request", "pos": slice(4, 7), "type": str},
+            {"name": "response", "pos": 7, "type": str},
+            {"name": "bytes", "pos": 8, "type": str},
+            {"name": "referrer", "pos": 9, "type": str},
+            {"name": "agent", "pos": slice(10, 13), "type": str},
+        ],
+    },
     "ssh": {
         "sep": " ",
         "fields": [
-            {"name": "datetime", "pos": slice(0, 3), "type": "datetime"},
+            {"name": "datetime", "pos": slice(1, 3), "type": "datetime"},
             {"name": "level", "pos": 3, "type": str},
             {"name": "component", "pos": 4, "type": str},
             {"name": "pid", "pos": 5, "type": str},
@@ -62,7 +75,7 @@ log_definitions = {
     "xferlog": {
         "sep": " ",
         "fields": [
-            {"name": "current_time", "pos": slice(0, 5), "type": "datetime"},
+            {"name": "current_time", "pos": slice(1, 5), "type": "datetime"},
             {"name": "transfer_time", "pos": 5, "type": int},
             {"name": "remote_host", "pos": 6, "type": str},
             {"name": "file_size", "pos": 7, "type": int},
