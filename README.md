@@ -52,7 +52,7 @@ streamlit run shadowlog.py
 
 ## 🖥️ **Usage Scenarios**  
 ### 🗺️ Dashboard Overview
-
+../assets/preview1.png
 ### 🔎 Threat Hunting  
 ```python  
 # Sample custom query for suspicious SSH activity  
@@ -70,8 +70,3 @@ streamlit run shadowlog.py
 ## 🤝 **Support & Contribution**  
 **Report a Ghost** : send us an email  
 **Contribute** : Open a GitHub Issue for feature requests or log parsers.  
-
----
-
-*“In the shadows, we hunt.”* 🕶️  
-```
