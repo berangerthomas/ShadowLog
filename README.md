@@ -50,20 +50,15 @@ streamlit run shadowlog.py
 
 ---
 
-## 🖥️ **Usage Scenarios**  
+## 🖥️ **Usage Scenarios**
+
 ### 🗺️ Dashboard Overview
-../assets/preview1.png
-### 🔎 Threat Hunting  
-```python  
-# Sample custom query for suspicious SSH activity  
 
-```  
+![alt text](assets/preview1.png)
 
-### 🚨 Custom Alerts  
-```yaml  
-# Example alert rule (config/alerts.yml)  
+### 🗺️ Temporal analysis
 
-```  
+![alt text](assets/preview5.png)
 
 ---
 
