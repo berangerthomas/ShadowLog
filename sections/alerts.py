@@ -56,6 +56,9 @@ else:
     st.subheader("Overview of logs")
     col1, col2, col3 = st.columns(3)
 
+    # Initialize error_df as an empty DataFrame
+    error_df = pd.DataFrame()
+
     with col1:
         total_entries = len(df)
         st.metric("Total number of entries", total_entries)
