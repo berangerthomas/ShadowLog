@@ -50,28 +50,18 @@ streamlit run shadowlog.py
 
 ---
 
-## 🖥️ **Usage Scenarios**  
+## 🖥️ **Usage Scenarios**
+
 ### 🗺️ Dashboard Overview
 
-### 🔎 Threat Hunting  
-```python  
-# Sample custom query for suspicious SSH activity  
+![alt text](assets/preview1.png)
 
-```  
+### 🗺️ Temporal analysis
 
-### 🚨 Custom Alerts  
-```yaml  
-# Example alert rule (config/alerts.yml)  
-
-```  
+![alt text](assets/preview5.png)
 
 ---
 
 ## 🤝 **Support & Contribution**  
 **Report a Ghost** : send us an email  
 **Contribute** : Open a GitHub Issue for feature requests or log parsers.  
-
----
-
-*“In the shadows, we hunt.”* 🕶️  
-```
