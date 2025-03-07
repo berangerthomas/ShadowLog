@@ -60,6 +60,9 @@ streamlit run shadowlog.py
 
 ![alt text](assets/preview5.png)
 
+### 🗺️ Agregate Value Over Time
+
+![alt text](assets/preview6.png)
 ---
 
 ## 🤝 **Support & Contribution**  
