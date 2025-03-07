@@ -108,11 +108,14 @@ elif chart_type == "Time Series":
     )
 
     # Option to aggregate data
-    do_aggregate = st.sidebar.checkbox("Aggregate by time period")
+    do_aggregate = st.sidebar.checkbox(
+        "Aggregate by time period", value=(ts_mode == "Count Over Time")
+    )
     if do_aggregate:
         period = st.sidebar.selectbox(
             "Select period",
             [
+                "Second",
                 "Minute",
                 "5 Minutes",
                 "15 Minutes",
@@ -124,14 +127,16 @@ elif chart_type == "Time Series":
                 "Month",
                 "Year",
             ],
+            index=5,
         )
         freq_map = {
+            "Second": "s",
             "Minute": "min",
             "5 Minutes": "5min",
             "15 Minutes": "15min",
             "30 Minutes": "30min",
-            "Hour": "H",
-            "6 Hours": "6H",
+            "Hour": "h",
+            "6 Hours": "6h",
             "Day": "D",
             "Week": "W",
             "Month": "M",
