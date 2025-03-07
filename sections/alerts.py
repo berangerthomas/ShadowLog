@@ -178,18 +178,16 @@ else:
                     )
                     error_count.columns = [timestamp_col, "count"]
 
-                    # Create the chart
-                    chart = (
-                        alt.Chart(error_count)
-                        .mark_line()
-                        .encode(
-                            x=alt.X(f"{timestamp_col}:T", title="Time"),
-                            y=alt.Y("count:Q", title="Number of errors"),
-                            tooltip=[f"{timestamp_col}:T", "count:Q"],
-                        )
-                        .properties(width=700, height=300, title="Errors per hour")
+                    # Create the chart with plotly
+                    import plotly.express as px
+
+                    fig = px.line(
+                        error_count, x=timestamp_col, y="count", title="Errors per hour"
                     )
-                    st.altair_chart(chart, use_container_width=True)
+                    fig.update_layout(
+                        xaxis_title="Time", yaxis_title="Number of errors", height=300
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
     else:
         st.success("No critical errors detected in the logs.")
 
