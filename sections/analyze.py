@@ -32,7 +32,7 @@ if not datetime_columns:
 # Chart type options
 chart_options = ["Pie Chart", "Sunburst Chart", "Histogram"]
 if datetime_columns:
-    chart_options.append("Time Series")
+    chart_options.extend(["Time Series", "Seasonnality"])
 
 chart_type = st.sidebar.selectbox("Choose chart type", chart_options)
 
@@ -315,5 +315,209 @@ if st.sidebar.checkbox("Show raw data"):
             st.write(filtered_data)
         else:
             st.write(data)
+
+elif chart_type == "Seasonnality":
+    st.header("Seasonality Analysis")
+
+    # Select datetime column for x-axis
+    datetime_col = st.sidebar.selectbox("Select datetime column", datetime_columns)
+
+    # Convert to datetime if needed
+    if data[datetime_col].dtype != "datetime64[ns]":
+        data[datetime_col] = pd.to_datetime(data[datetime_col])
+
+    # Add option to choose analysis variable
+    analysis_options = ["Count"]
+    if numerical_columns:
+        analysis_options.extend(["Average", "Sum"])
+
+    analysis_type = st.sidebar.selectbox("Analysis type", analysis_options)
+
+    # Select variable for seasonality analysis
+    if analysis_type in ["Average", "Sum"] and numerical_columns:
+        # For Average and Sum, we need a numeric variable
+        season_var = st.sidebar.selectbox("Select numeric variable", numerical_columns)
+        y_label = f"{analysis_type} of {season_var}"
     else:
-        st.write(data)
+        # For Count, we can use an optional categorical variable for grouping
+        season_var = st.sidebar.selectbox(
+            "Group by (optional)", ["None"] + categorical_columns
+        )
+        if season_var == "None":
+            season_var = None
+            y_label = "Count"
+        else:
+            y_label = f"Count by {season_var}"
+
+    # Add time granularity selection
+    time_options = [
+        "Year",
+        "Year-Month",
+        "Year-Week",
+        "Day of Week",
+        "Month of Year",
+        "Hour of Day",
+        "Day of Month",
+    ]
+
+    selected_time_periods = st.sidebar.multiselect(
+        "Select time periods to analyze",
+        time_options,
+        default=["Year-Month", "Day of Week", "Hour of Day"],
+    )
+
+    if not selected_time_periods:
+        st.warning("Please select at least one time period to analyze.")
+        st.stop()
+
+    # Prepare data with time components
+    temp_data = data.copy()
+    temp_data["year"] = temp_data[datetime_col].dt.year
+    temp_data["month"] = temp_data[datetime_col].dt.month
+    temp_data["month_name"] = temp_data[datetime_col].dt.month_name()
+    temp_data["week"] = temp_data[datetime_col].dt.isocalendar().week
+    temp_data["year_month"] = temp_data[datetime_col].dt.to_period("M").astype(str)
+    temp_data["year_week"] = temp_data[datetime_col].dt.strftime("%Y-W%U")
+    temp_data["day_of_week"] = temp_data[datetime_col].dt.day_name()
+    temp_data["day_of_month"] = temp_data[datetime_col].dt.day
+    temp_data["hour"] = temp_data[datetime_col].dt.hour
+
+    # Define days order for correct sorting
+    days_order = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+
+    months_order = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
+
+    # Create a tab for each selected time period
+    tabs = st.tabs(selected_time_periods)
+
+    for i, period in enumerate(selected_time_periods):
+        with tabs[i]:
+            st.write(f"#### {period} Analysis")
+
+            # Define groupby column and sorting based on period
+            if period == "Year":
+                groupby_col = "year"
+                sort_index = True
+            elif period == "Year-Month":
+                groupby_col = "year_month"
+                sort_index = True
+            elif period == "Year-Week":
+                groupby_col = "year_week"
+                sort_index = True
+            elif period == "Day of Week":
+                groupby_col = "day_of_week"
+                # Use categorical type for proper sorting
+                temp_data["day_of_week"] = pd.Categorical(
+                    temp_data["day_of_week"], categories=days_order, ordered=True
+                )
+                sort_index = False
+            elif period == "Month of Year":
+                groupby_col = "month_name"
+                # Use categorical type for proper sorting
+                temp_data["month_name"] = pd.Categorical(
+                    temp_data["month_name"], categories=months_order, ordered=True
+                )
+                sort_index = False
+            elif period == "Hour of Day":
+                groupby_col = "hour"
+                sort_index = True
+            elif period == "Day of Month":
+                groupby_col = "day_of_month"
+                sort_index = True
+
+            # Create the visualization
+            if season_var and season_var != "None":
+                # Group by time period and the selected variable
+                if analysis_type == "Count":
+                    period_data = (
+                        temp_data.groupby([groupby_col, season_var])
+                        .size()
+                        .reset_index(name="count")
+                    )
+                    y_col = "count"
+                elif analysis_type == "Average":
+                    period_data = (
+                        temp_data.groupby([groupby_col, season_var])[season_var]
+                        .mean()
+                        .reset_index(name="average")
+                    )
+                    y_col = "average"
+                else:  # Sum
+                    period_data = (
+                        temp_data.groupby([groupby_col, season_var])[season_var]
+                        .sum()
+                        .reset_index(name="sum")
+                    )
+                    y_col = "sum"
+
+                # Sort if needed
+                if sort_index:
+                    period_data = period_data.sort_values(groupby_col)
+
+                # Create and display bar chart
+                fig = px.bar(
+                    period_data,
+                    x=groupby_col,
+                    y=y_col,
+                    color=season_var,
+                    barmode="group",
+                    title=f"{period} Distribution by {season_var}",
+                    labels={y_col: y_label},
+                )
+                st.plotly_chart(fig)
+
+            else:
+                # Simple time series without additional grouping
+                if analysis_type == "Count":
+                    if sort_index:
+                        period_counts = (
+                            temp_data[groupby_col].value_counts().sort_index()
+                        )
+                    else:
+                        period_counts = temp_data[groupby_col].value_counts()
+                elif analysis_type == "Average":
+                    period_counts = temp_data.groupby(groupby_col)[season_var].mean()
+                    if sort_index:
+                        period_counts = period_counts.sort_index()
+                else:  # Sum
+                    period_counts = temp_data.groupby(groupby_col)[season_var].sum()
+                    if sort_index:
+                        period_counts = period_counts.sort_index()
+
+                # Sort by natural order if day_of_week or month_name
+                if groupby_col == "day_of_week":
+                    period_counts = period_counts.reindex(days_order).fillna(0)
+                elif groupby_col == "month_name":
+                    period_counts = period_counts.reindex(months_order).fillna(0)
+
+                fig = px.bar(
+                    x=period_counts.index,
+                    y=period_counts.values,
+                    title=f"{period} {y_label}",
+                    labels={"x": period, "y": y_label},
+                )
+                st.plotly_chart(fig)
+
+else:
+    st.write(data)
