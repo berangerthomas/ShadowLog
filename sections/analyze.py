@@ -30,7 +30,7 @@ if not datetime_columns:
             pass
 
 # Chart type options
-chart_options = ["Pie Chart", "Histogram"]
+chart_options = ["Pie Chart", "Sunburst Chart", "Histogram"]
 if datetime_columns:
     chart_options.append("Time Series")
 
@@ -61,6 +61,31 @@ if chart_type == "Pie Chart":
     # Display value table
     st.write("Value distribution:")
     st.write(data[selected_column].value_counts())
+
+elif chart_type == "Sunburst Chart":
+    st.header("Sunburst Chart")
+
+    selected_columns = st.sidebar.multiselect(
+        "Select one or more categorical variables:",
+        categorical_columns,
+        default=categorical_columns[:1],
+    )
+
+    if not selected_columns:
+        st.warning("Please select at least one variable.")
+        st.stop()
+
+    fig = px.sunburst(
+        data,
+        path=selected_columns,
+        title="Sunburst Chart",
+    )
+    fig.update_traces(textinfo="label+percent parent")
+    st.plotly_chart(fig)
+
+    st.write("Value distribution:")
+    group_counts = data.groupby(selected_columns).size().reset_index(name="Count")
+    st.write(group_counts)
 
 elif chart_type == "Histogram":
     st.header("Histogram")
