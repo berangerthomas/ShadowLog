@@ -32,9 +32,10 @@ add_logo()
 # Pages definition
 home = st.Page("sections/home.py", title="🏠 Home")
 upload = st.Page("sections/upload.py", title="📥 Upload")
-analyze = st.Page("sections/analyze.py", title=" 📊 Analyze")
-alerts = st.Page("sections/alerts.py", title=" 📊 Alerts")
+statistics = st.Page("sections/statistics.py", title="📈 Statistics")
+analyze = st.Page("sections/analyze.py", title="🔍 Analyze")
+alerts = st.Page("sections/alerts.py", title="🚨 Alerts")
 about = st.Page("sections/about.py", title="📄 About")
 
-pg = st.navigation([home, upload, analyze, alerts, about])
+pg = st.navigation([home, upload, statistics, analyze, alerts, about])
 pg.run()
