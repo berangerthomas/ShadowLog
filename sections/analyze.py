@@ -133,7 +133,7 @@ with tab1:
                 )
 
             # Affichage des données filtrées
-            st.write(f"### 🔍 Data filtred : {filtered_data.shape[0]} entries")
+            st.write(f"### 🔍 Data filtered : {filtered_data.shape[0]} entries")
             st.dataframe(filtered_data)
 
     else:
