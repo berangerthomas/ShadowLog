@@ -195,11 +195,16 @@ with stat_tab3:
                             )
                         )
                     else:
+                        # Avec votre variable 'col' (remplacez 'col' par le nom réel de votre colonne)
                         st.write(f"Top 10 most common values (out of {unique_count})")
                         st.write(
-                            df.select(pl.col(col).value_counts().struct.unnest())
+                            df.select(
+                                pl.col(col)
+                                .value_counts()
+                                .struct.unnest()  # Déstructure la struct ici
+                            )
                             .sort("counts", descending=True)
-                            .limit(10)
+                            .head(10)
                         )
 
                     # Show missing values for this column
