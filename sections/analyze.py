@@ -1,4 +1,5 @@
 import pandas as pd
+import polars as pl
 import plotly.express as px
 import streamlit as st
 
@@ -19,12 +20,17 @@ data = st.session_state.parsed_df
 st.sidebar.header("Visualization Options")
 
 # Check if there are datetime columns
-datetime_columns = data.select_dtypes(include=["datetime64"]).columns.tolist()
+datetime_columns = [
+    name for name, dtype in data.schema.items() if pl.is_temporal_dtype(dtype)
+]
 # Try to detect string columns that could be dates
 if not datetime_columns:
-    for col in data.select_dtypes(include=["object"]).columns:
+    string_cols = [
+        name for name, dtype in data.schema.items() if pl.is_string_dtype(dtype)
+    ]
+    for col in string_cols:
         try:
-            pd.to_datetime(data[col], errors="raise")
+            data.select(pl.col(col).str.to_datetime())
             datetime_columns.append(col)
         except (ValueError, TypeError):
             pass
@@ -37,9 +43,17 @@ if datetime_columns:
 chart_type = st.sidebar.selectbox("Choose chart type", chart_options)
 
 # Get categorical columns
-categorical_columns = data.select_dtypes(include=["object"]).columns.tolist()
+categorical_columns = [
+    name
+    for name, dtype in data.schema.items()
+    if pl.is_string_dtype(dtype) or pl.is_categorical_dtype(dtype)
+]
 # Get numerical columns
-numerical_columns = data.select_dtypes(include=["int", "float"]).columns.tolist()
+numerical_columns = [
+    name
+    for name, dtype in data.schema.items()
+    if pl.is_integer_dtype(dtype) or pl.is_float_dtype(dtype)
+]
 
 # Main area for visualization
 if chart_type == "Pie Chart":
@@ -84,7 +98,7 @@ elif chart_type == "Sunburst Chart":
     st.plotly_chart(fig)
 
     st.write("Value distribution:")
-    group_counts = data.groupby(selected_columns).size().reset_index(name="Count")
+    group_counts = data.groupby(selected_columns).agg(pl.count().alias("Count"))
     st.write(group_counts)
 
 elif chart_type == "Histogram":
@@ -104,8 +118,8 @@ elif chart_type == "Histogram":
             "Select a categorical variable", categorical_columns
         )
         # Get counts and create histogram
-        counts = data[selected_column].value_counts().reset_index()
-        counts.columns = ["value", "count"]
+        counts = data.select(pl.col(selected_column)).value_counts()
+        counts = counts.rename({selected_column: "value"})
         fig = px.bar(
             counts,
             x="value",
@@ -124,8 +138,12 @@ elif chart_type == "Time Series":
     datetime_col = st.sidebar.selectbox("Select datetime column", datetime_columns)
 
     # Convert to datetime if needed
-    if data[datetime_col].dtype != "datetime64[ns]":
-        data[datetime_col] = pd.to_datetime(data[datetime_col])
+    # Check if it's not already a datetime type
+    if not pl.is_temporal_dtype(data.schema[datetime_col]):
+        # Convert the column to datetime using Polars
+        data = data.with_columns(
+            pl.col(datetime_col).str.to_datetime().alias(datetime_col)
+        )
 
     # Add option to choose between numeric values or counts
     ts_mode = st.sidebar.radio(
