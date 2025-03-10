@@ -66,16 +66,17 @@ if st.button("Start clustering"):
                 # Appliquer K-Means avec k optimal choisi
                 k_optimal = 2  # Par exemple, supposons que k = 3
                 kmeans = KMeans(n_clusters=k_optimal, random_state=42)
-                df = df.with_columns(pl.Series(kmeans.fit_predict(df.to_pandas()), name='cluster_kmeans'))
-                st.write(df[:10])
+                preds = kmeans.fit_predict(df.to_pandas())
+                df = df.with_columns(pl.Series(values=preds, name='cluster_kmeans'))
 
-                # Appliquer DBSCAN (epsilon et min_samples sont des hyperparamètres)
+
                 # dbscan = DBSCAN(eps=0.5, min_samples=10)
-                # df = df.with_columns(pl.Series(dbscan.fit_predict(df.to_pandas()), name='cluster_dbscan'))
+                # preds = dbscan.fit_predict(df.to_pandas())
+                # df = df.with_columns(pl.Series(values=preds, name='cluster_dbscan'))
 
-                # Appliquer Agglomerative Clustering
                 # agg_clustering = AgglomerativeClustering(n_clusters=2)
-                # df = df.with_columns(pl.Series(agg_clustering.fit_predict(df.to_pandas()), name='cluster_agg'))
+                # preds = agg_clustering.fit_predict(df.to_pandas())
+                # df = df.with_columns(pl.Series(values=preds, name='cluster_agg'))                
 
                 ###############################################################
                 ####              Visualisation des clusters               ####
@@ -102,7 +103,8 @@ if st.button("Start clustering"):
                     yaxis_title='Component 2'
                 )
 
-                fig.show()
+                # fig.show()
+                st.plotly_chart(fig, use_container_width=True)
                 
             except Exception as e:
                 st.error(f"An error occured : {e}")
