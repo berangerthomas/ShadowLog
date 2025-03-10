@@ -30,7 +30,7 @@ with stat_tab1:
 
     with col2:
         st.metric("Number of Columns", df.width)
-        st.metric("Missing Values", df.null_count().sum())
+        st.metric("Missing Values", sum(df.null_count().row(0)))
 
     # Display data types distribution
     dtypes_dict = {
@@ -55,10 +55,22 @@ with stat_tab2:
     st.write("### Numerical Summary Statistics")
 
     # Get numeric columns
+    numeric_dtypes = {
+        pl.Int8,
+        pl.Int16,
+        pl.Int32,
+        pl.Int64,
+        pl.UInt8,
+        pl.UInt16,
+        pl.UInt32,
+        pl.UInt64,
+        pl.Float32,
+        pl.Float64,
+    }
     numeric_cols = [
         name
         for name, dtype in zip(df.columns, df.schema.values())
-        if pl.datatypes.is_numeric(dtype)
+        if dtype in numeric_dtypes
     ]
 
     if numeric_cols:
@@ -79,11 +91,11 @@ with stat_tab2:
     # Add datetime variables analysis section
     st.write("### Datetime Variables Analysis")
 
-    # Get datetime columns
+    datetime_dtypes = {pl.Date, pl.Datetime, pl.Time, pl.Duration}
     datetime_cols = [
         name
         for name, dtype in zip(df.columns, df.schema.values())
-        if pl.datatypes.is_temporal(dtype)
+        if dtype in datetime_dtypes
     ]
 
     if datetime_cols:
@@ -145,11 +157,22 @@ with stat_tab2:
         st.info("No datetime columns available for analysis.")
 
 with stat_tab3:
-    # Analyze categorical and non-numeric variables
+    numeric_dtypes = {
+        pl.Int8,
+        pl.Int16,
+        pl.Int32,
+        pl.Int64,
+        pl.UInt8,
+        pl.UInt16,
+        pl.UInt32,
+        pl.UInt64,
+        pl.Float32,
+        pl.Float64,
+    }
     non_numeric_cols = [
         name
         for name, dtype in zip(df.columns, df.schema.values())
-        if not pl.datatypes.is_numeric(dtype)
+        if dtype not in numeric_dtypes
     ]
 
     if non_numeric_cols:
@@ -167,16 +190,16 @@ with stat_tab3:
                     # Show value counts if not too many unique values
                     if unique_count <= 20:
                         st.write(
-                            df.select(pl.col(col).value_counts()).sort(
-                                "count", descending=True
+                            df.select(pl.col(col).value_counts().struct.unnest()).sort(
+                                "counts", descending=True
                             )
                         )
                     else:
                         st.write(f"Top 10 most common values (out of {unique_count})")
                         st.write(
-                            df.select(pl.col(col).value_counts())
-                            .sort("count", descending=True)
-                            .head(10)
+                            df.select(pl.col(col).value_counts().struct.unnest())
+                            .sort("counts", descending=True)
+                            .limit(10)
                         )
 
                     # Show missing values for this column
