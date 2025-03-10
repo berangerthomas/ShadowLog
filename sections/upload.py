@@ -9,7 +9,9 @@ from utils.pandas2sql import Pandas2SQL
 
 st.title("ShadowLog - Log File Analyzer")
 st.write("Upload a log file to analyze with the following format :")
-st.write("date;ipsrc;ipdst;protocole;portsrc;portdst;rule;action;interface;unknown;fw")
+st.write(
+    "datetime;ipsrc;ipdst;protocole;portsrc;portdst;rule;action;interface;unknown;fw"
+)
 
 uploaded_file = st.file_uploader("Choose a log file")
 
@@ -26,7 +28,7 @@ if uploaded_file is not None:
                     has_header=False,
                     infer_schema_length=10000,
                     dtypes={
-                        "date": pl.Datetime,
+                        "datetime": pl.Datetime,
                         "ipsrc": pl.Utf8,
                         "ipdst": pl.Utf8,
                         "protocole": pl.Utf8,
@@ -40,8 +42,8 @@ if uploaded_file is not None:
                     },
                 )
                 .filter(
-                    (pl.col("date") >= pl.datetime(2024, 11, 1))
-                    & (pl.col("date") < pl.datetime(2025, 3, 1))
+                    (pl.col("datetime") >= pl.datetime(2024, 11, 1))
+                    & (pl.col("datetime") < pl.datetime(2025, 3, 1))
                 )
                 .drop(["portsrc", "unknown", "fw"])
             )
