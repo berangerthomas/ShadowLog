@@ -8,7 +8,9 @@ from datetime import datetime
 import streamlit as st
 
 from config.log_definitions import log_definitions
-from utils.log2pandas import LogParser
+
+# from utils.log2pandas import LogParser
+from utils.log2polars import LogParser
 from utils.pandas2sql import Pandas2SQL
 
 #####################################################
