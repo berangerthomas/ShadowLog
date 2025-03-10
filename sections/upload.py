@@ -5,12 +5,10 @@ from datetime import datetime
 import polars as pl
 import streamlit as st
 
-from utils.pandas2sql import Pandas2SQL
-
 st.title("ShadowLog - Log File Analyzer")
 st.write("Upload a log file to analyze with the following format :")
 st.write(
-    "datetime;ipsrc;ipdst;protocole;portsrc;portdst;rule;action;interface;unknown;fw"
+    "timestamp;ipsrc;ipdst;protocole;portsrc;portdst;rule;action;interface;unknown;fw"
 )
 
 uploaded_file = st.file_uploader("Choose a log file")
@@ -28,7 +26,7 @@ if uploaded_file is not None:
                     has_header=False,
                     infer_schema_length=10000,
                     dtypes={
-                        "datetime": pl.Datetime,
+                        "timestamp": pl.Datetime,
                         "ipsrc": pl.Utf8,
                         "ipdst": pl.Utf8,
                         "protocole": pl.Utf8,
@@ -42,8 +40,8 @@ if uploaded_file is not None:
                     },
                 )
                 .filter(
-                    (pl.col("datetime") >= pl.datetime(2024, 11, 1))
-                    & (pl.col("datetime") < pl.datetime(2025, 3, 1))
+                    (pl.col("timestamp") >= pl.datetime(2024, 11, 1))
+                    & (pl.col("timestamp") < pl.datetime(2025, 3, 1))
                 )
                 .drop(["portsrc", "unknown", "fw"])
             )
@@ -59,18 +57,19 @@ if uploaded_file is not None:
                     sqlite_path = os.path.join(
                         tempfile.gettempdir(), f"log_data_{timestamp}.sqlite"
                     )
-                    sql_converter = Pandas2SQL(sqlite_path)
-                    sql_converter.create_table(
-                        st.session_state.parsed_df.to_pandas(),
-                        st.session_state.log_type,
+                    sqlite_conn_string = f"sqlite:///{sqlite_path}"
+                    original_filename = os.path.splitext(uploaded_file.name)[0]
+                    st.session_state.parsed_df.write_database(
+                        table_name=original_filename,
+                        connection=sqlite_conn_string,
+                        if_table_exists="replace",
                     )
                     with open(sqlite_path, "rb") as file:
                         sqlite_data = file.read()
                     st.success("SQLite file created successfully!")
                     st.download_button(
                         label="Download SQLite file",
-                        data=sqlite_data,
-                        file_name=f"log_file_{st.session_state.log_type}_{timestamp}.sqlite",
+                        file_name=f"log_file_{original_filename}_{timestamp}.sqlite",
                         mime="application/octet-stream",
                     )
                 except Exception as e:
