@@ -21,7 +21,9 @@ st.sidebar.header("Visualization Options")
 
 # Check if there are datetime columns
 datetime_columns = [
-    name for name, dtype in data.schema.items() if pl.is_temporal_dtype(dtype)
+    name
+    for name, dtype in data.schema.items()
+    if isinstance(dtype, pl.datatypes.Datetime) or isinstance(dtype, pl.datatypes.Date)
 ]
 # Try to detect string columns that could be dates
 if not datetime_columns:
@@ -46,13 +48,23 @@ chart_type = st.sidebar.selectbox("Choose chart type", chart_options)
 categorical_columns = [
     name
     for name, dtype in data.schema.items()
-    if pl.is_string_dtype(dtype) or pl.is_categorical_dtype(dtype)
+    if dtype == pl.Utf8 or dtype == pl.Categorical
 ]
 # Get numerical columns
+numeric_dtypes = [
+    pl.Int8,
+    pl.Int16,
+    pl.Int32,
+    pl.Int64,
+    pl.UInt8,
+    pl.UInt16,
+    pl.UInt32,
+    pl.UInt64,
+    pl.Float32,
+    pl.Float64,
+]
 numerical_columns = [
-    name
-    for name, dtype in data.schema.items()
-    if pl.is_integer_dtype(dtype) or pl.is_float_dtype(dtype)
+    name for name, dtype in data.schema.items() if dtype in numeric_dtypes
 ]
 
 # Main area for visualization
@@ -139,8 +151,7 @@ elif chart_type == "Time Series":
 
     # Convert to datetime if needed
     # Check if it's not already a datetime type
-    if not pl.is_temporal_dtype(data.schema[datetime_col]):
-        # Convert the column to datetime using Polars
+    if data.schema[datetime_col] not in [pl.Date, pl.Datetime]:
         data = data.with_columns(
             pl.col(datetime_col).str.to_datetime().alias(datetime_col)
         )
@@ -195,9 +206,9 @@ elif chart_type == "Time Series":
 
         if do_aggregate:
             grouped_data = (
-                data.groupby(pd.Grouper(key=datetime_col, freq=freq))[y_column]
-                .mean()
-                .reset_index()
+                data.groupby_dynamic(datetime_col, every=freq, closed="left")
+                .agg([pl.col(y_column).mean().alias(y_column)])
+                .sort(datetime_col)
             )
             fig = px.line(
                 grouped_data,
@@ -207,7 +218,7 @@ elif chart_type == "Time Series":
             )
         else:
             fig = px.line(
-                data.sort_values(by=datetime_col),
+                data.sort(datetime_col).to_pandas(),
                 x=datetime_col,
                 y=y_column,
                 title=f"{y_column} over time",
@@ -224,12 +235,19 @@ elif chart_type == "Time Series":
         if do_aggregate:
             # Group by time period and count values in the selected column
             count_data = (
-                data.groupby([pd.Grouper(key=datetime_col, freq=freq), count_column])
-                .size()
-                .reset_index(name="count")
-                .pivot(index=datetime_col, columns=count_column, values="count")
-                .fillna(0)
-                .reset_index()
+                data.with_columns(
+                    pl.col(datetime_col).dt.truncate(freq).alias(datetime_col)
+                )
+                .groupby([datetime_col, count_column])
+                .agg(pl.count().alias("count"))
+                .pivot(
+                    index=datetime_col,
+                    columns=count_column,
+                    values="count",
+                )
+                .fill_null(0)
+                .sort(datetime_col)
+                .to_pandas()
             )
 
             # Create line plot for each category
@@ -341,8 +359,10 @@ elif chart_type == "Seasonnality":
     datetime_col = st.sidebar.selectbox("Select datetime column", datetime_columns)
 
     # Convert to datetime if needed
-    if data[datetime_col].dtype != "datetime64[ns]":
-        data[datetime_col] = pd.to_datetime(data[datetime_col])
+    if data.schema[datetime_col] not in [pl.Date, pl.Datetime]:
+        data = data.with_columns(
+            pl.col(datetime_col).str.to_datetime().alias(datetime_col)
+        )
 
     # Add option to choose analysis variable
     analysis_options = ["Count"]
@@ -389,7 +409,7 @@ elif chart_type == "Seasonnality":
         st.stop()
 
     # Prepare data with time components
-    temp_data = data.copy()
+    temp_data = data.clone()
     temp_data["year"] = temp_data[datetime_col].dt.year
     temp_data["month"] = temp_data[datetime_col].dt.month
     temp_data["month_name"] = temp_data[datetime_col].dt.month_name()
