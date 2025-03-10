@@ -52,12 +52,12 @@ log_definitions = {
     "log": {
         "sep": ";",
         "fields": [
-            {"name": "timestamp", "pos": 0, "type": str},
-            {"name": "ipsource", "pos": 1, "type": int},
+            {"name": "timestamp", "pos": 0, "type": "datetime"},
+            {"name": "ipsource", "pos": 1, "type": str},
             {"name": "ipdestination", "pos": 2, "type": str},
             {"name": "protocole", "pos": 3, "type": str},
-            {"name": "portsource", "pos": 4, "type": str},
-            {"name": "portdest", "pos": 5, "type": str},
+            {"name": "portsource", "pos": 4, "type": int},
+            {"name": "portdest", "pos": 5, "type": int},
             {"name": "regle1", "pos": 6, "type": str},
             {"name": "status", "pos": 7, "type": str},
             {"name": "interface", "pos": 8, "type": str},
