@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import tempfile
 from datetime import datetime
 
@@ -88,35 +89,45 @@ if uploaded_file is not None:
                 )
                 .drop(["portsrc", "unknown", "fw"])
             )
-            st.success("File parsed and filtered successfully!")
+            row_count = st.session_state.parsed_df.height
+            st.success(
+                f"File parsed and filtered successfully! After filtering, {row_count:,} rows remain."
+            )
         except Exception as e:
             st.error(f"Error parsing the file: {e}")
 
     if st.session_state.parsed_df is not None:
         if st.button("Convert to SQLite"):
             with st.spinner("Converting to SQLite..."):
-                try:
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    sqlite_path = os.path.join(
-                        tempfile.gettempdir(), f"log_data_{timestamp}.sqlite"
-                    )
-                    sqlite_conn_string = f"sqlite:///{sqlite_path}"
-                    original_filename = os.path.splitext(uploaded_file.name)[0]
-                    st.session_state.parsed_df.write_database(
-                        table_name=original_filename,
-                        connection=sqlite_conn_string,
-                        if_table_exists="replace",
-                    )
-                    with open(sqlite_path, "rb") as file:
-                        sqlite_data = file.read()
-                    st.success("SQLite file created successfully!")
-                    st.download_button(
-                        label="Download SQLite file",
-                        file_name=f"log_file_{original_filename}_{timestamp}.sqlite",
-                        mime="application/octet-stream",
-                    )
-                except Exception as e:
-                    st.error(f"Error converting to SQLite: {e}")
-                finally:
-                    if os.path.exists(sqlite_path):
-                        os.unlink(sqlite_path)
+                # Create a temporary file for the SQLite database
+                temp_db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+                temp_db_path = temp_db_file.name
+                temp_db_file.close()
+
+                # Connect to SQLite database
+                conn = sqlite3.connect(temp_db_path)
+
+                # Convert Polars DataFrame to Pandas for easy SQLite export
+                pandas_df = st.session_state.parsed_df.to_pandas()
+
+                # Write to SQLite
+                pandas_df.to_sql("logs", conn, if_exists="replace", index=False)
+                conn.close()
+
+                # Prepare file for download
+                with open(temp_db_path, "rb") as file:
+                    db_contents = file.read()
+
+                # Create download button
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                st.download_button(
+                    label="Download SQLite Database",
+                    data=db_contents,
+                    file_name=f"logs_{timestamp}.sqlite3",
+                    mime="application/octet-stream",
+                )
+
+                # Clean up
+                os.unlink(temp_db_path)
+
+                st.success("SQLite conversion complete!")
