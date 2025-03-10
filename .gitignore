@@ -1,6 +1,13 @@
 # Fichier log exemple
 xferlog-20191106
 
+# Fichiers log et zip
+*.log
+*.zip
+*.gz
+*.7z
+*.rar
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
