@@ -8,7 +8,50 @@ import streamlit as st
 st.title("ShadowLog - Log File Analyzer")
 st.write("Upload a log file to analyze with the following format :")
 st.write(
-    "timestamp;ipsrc;ipdst;protocole;portsrc;portdst;rule;action;interface;unknown;fw"
+    """
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            text-align: center;
+        }
+    </style>
+    <table>
+        <thead>
+            <tr>
+                <th>Column name</th>
+                <td>timestamp</td>
+                <td>ipsrc</td>
+                <td>ipdst</td>
+                <td>protocole</td>
+                <td>portsrc</td>
+                <td>portdst</td>
+                <td>rule</td>
+                <td>action</td>
+                <td>interface</td>
+                <td>unknown</td>
+                <td>fw</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Format</th>
+                <td>YYYY-MM-DD HH:MM:SS</td>
+                <td>str</td>
+                <td>str</td>
+                <td>str</td>
+                <td>int</td>
+                <td>int</td>
+                <td>int</td>
+                <td>str</td>
+                <td>str</td>
+                <td>str</td>
+                <td>int</td>
+            </tr>
+        </tbody>
+    </table>
+    """,
+    unsafe_allow_html=True,
 )
 
 uploaded_file = st.file_uploader("Choose a log file")
