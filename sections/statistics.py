@@ -191,7 +191,7 @@ with stat_tab3:
                     if unique_count <= 20:
                         st.write(
                             df.select(pl.col(col).value_counts().struct.unnest()).sort(
-                                "counts", descending=True
+                                "count", descending=True
                             )
                         )
                     else:
@@ -203,7 +203,7 @@ with stat_tab3:
                                 .value_counts()
                                 .struct.unnest()  # Déstructure la struct ici
                             )
-                            .sort("counts", descending=True)
+                            .sort("count", descending=True)
                             .head(10)
                         )
 

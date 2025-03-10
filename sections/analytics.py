@@ -22,10 +22,10 @@ data = st.session_state.parsed_df
 data = data.select(["portdest","protocole","regle1","status"])
 
 # Sélectionner toutes les colonnes numériques
-quanti = data.select(pl.col(pl.String))
+quanti = data.select(pl.col(pl.Int64))
 
 # Sélectionner toutes les colonnes de type chaîne
-quali = data.select(pl.col(pl.Int64))
+quali = data.select(pl.col(pl.String))
 
 ##############################################
 ####            Preprocessing             ####
@@ -37,18 +37,23 @@ scaler = StandardScaler()
 data_quanti = scaler.fit_transform(quanti.to_pandas())
 
 # Convertir de nouveau en DataFrame Polars
-data_quanti = pl.from_pandas(pd.DataFrame(data_quanti, columns=data_quanti.columns))
+data_quanti = pl.from_pandas(pd.DataFrame(data_quanti, columns=quanti.columns))
 
 # Encodage one-hot des données quali
 
-encoder = OneHotEncoder()
+encoder = OneHotEncoder(sparse_output=False)
 data_quali = encoder.fit_transform(quali.to_pandas())
 
+col_names = [
+    f"{feature}_{category}" 
+    for feature, categories in zip(quali.columns, encoder.categories_)
+    for category in categories
+]
+
 # Convertir de nouveau en DataFrame Polars
-data_quali = pl.from_pandas(pd.DataFrame(data_quali, columns=data_quali.columns))
+data_quali = pl.from_pandas(pd.DataFrame(data_quali, columns=col_names))
 
-
-df = pl.concat([data_quanti, data_quali], how="diagonal")
+df = pl.concat([data_quanti, data_quali], how="horizontal")
 
 ###############################################
 ####              Clustering               ####
@@ -62,6 +67,7 @@ if st.button("Start clustering"):
                 k_optimal = 2  # Par exemple, supposons que k = 3
                 kmeans = KMeans(n_clusters=k_optimal, random_state=42)
                 df = df.with_columns(pl.Series(kmeans.fit_predict(df.to_pandas()), name='cluster_kmeans'))
+                st.write(df[:10])
 
                 # Appliquer DBSCAN (epsilon et min_samples sont des hyperparamètres)
                 # dbscan = DBSCAN(eps=0.5, min_samples=10)
