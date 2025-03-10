@@ -120,7 +120,3 @@ if uploaded_file is not None:
                 finally:
                     if os.path.exists(sqlite_path):
                         os.unlink(sqlite_path)
-
-if st.session_state.parsed_df is not None:
-    st.subheader("Parsed log data")
-    st.dataframe(st.session_state.parsed_df)
