@@ -13,12 +13,16 @@ class LogParser:
     def __init__(self, file_path, log_type):
         self.file_path = file_path
         self.log_definition = log_definitions[log_type]
+        self.log_separator = self.log_definition["sep"]
 
     def parse_line(self, line):
         """Parse a line from the log file using the provided definition."""
         # Start by replacing [ and ] with spaces
         line = line.replace("[", " ").replace("]", " ")
-        tokens = line.strip().split()
+
+        # Get separator from log definition, default to whitespace if not specified
+        tokens = line.strip().split(self.log_separator)
+
         # Ignore the line if it does not contain enough tokens
         if len(tokens) < len(self.log_definition["fields"]):
             return None
