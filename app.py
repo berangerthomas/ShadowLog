@@ -37,7 +37,7 @@ analyze = st.Page("sections/analyze.py", title="🔍 Analyze")
 analytics = st.Page("sections/analytics.py", title="🤖 Analytics")
 alerts = st.Page("sections/alerts.py", title="🚨 Alerts")
 about = st.Page("sections/about.py", title="📄 About")
-test_filtre = st.Page("sections/test_filtre.py", title="test_filtre")
 
-pg = st.navigation([home, upload, statistics, analyze, analytics, alerts, test_filtre])
+
+pg = st.navigation([home, upload, statistics, analyze, analytics, alerts])
 pg.run()

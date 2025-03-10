@@ -38,26 +38,26 @@ with tab1:
             start_date = st.date_input("Date début", min_date)
             end_date = st.date_input("Date fin", max_date)
 
-        # ---- FILTRE STATUS ----
+        # ---- FILTRE action----
         with col2:
-            st.markdown("### 🔄 Status")
-            if "status" in data.columns:
-                unique_statuses = sorted(data["status"].unique().cast(pl.Utf8).to_list())  # S'assurer du bon format
-                selected_status = st.selectbox("Sélectionnez un status", ["Tous"] + unique_statuses)
+            st.markdown("### 🔄 Action")
+            if "action" in data.columns:
+                unique_action = sorted(data["action"].unique().cast(pl.Utf8).to_list())  # S'assurer du bon format
+                selected_action= st.selectbox("Sélectionnez un action", ["Tous"] + unique_action)
             else:
-                selected_status = "Tous"
-                st.warning("Colonne 'status' non trouvée.")
+                selected_action= "Tous"
+                st.warning("Colonne 'action' non trouvée.")
 
-        # ---- FILTRE PORTDEST ----
+        # ---- FILTRE portdst ----
         with col3:
             st.markdown("### 🔢 Port")
-            if "portdest" in data.columns:
-                min_port, max_port = int(data["portdest"].min()), int(data["portdest"].max())
+            if "portdst" in data.columns:
+                min_port, max_port = int(data["portdst"].min()), int(data["portdst"].max())
                 selected_port = st.slider("Sélectionnez un port destination", min_port, max_port, (min_port, max_port))
             else:
                 min_port, max_port = 0, 600000  # Valeurs par défaut si la colonne est absente
                 selected_port = (min_port, max_port)
-                st.warning("Colonne 'portdest' non trouvée, valeurs par défaut appliquées.")
+                st.warning("Colonne 'portdst' non trouvée, valeurs par défaut appliquées.")
 
         # Vérification des dates sélectionnées
         if start_date > end_date:
@@ -72,15 +72,15 @@ with tab1:
                 (pl.col("timestamp") >= start_datetime) & (pl.col("timestamp") <= end_datetime)
             )
 
-            # Correction du filtrage par status (forcer conversion Utf8)
-            if "status" in data.columns and selected_status != "Tous":
-                filtered_data = filtered_data.filter(pl.col("status").cast(pl.Utf8) == selected_status)
+            # Correction du filtrage par action(forcer conversion Utf8)
+            if "action" in data.columns and selected_action!= "Tous":
+                filtered_data = filtered_data.filter(pl.col("action").cast(pl.Utf8) == selected_action)
 
-            # Filtrer par portdest en prenant en compte min/max
-            if "portdest" in data.columns:
+            # Filtrer par portdst en prenant en compte min/max
+            if "portdst" in data.columns:
                 filtered_data = filtered_data.filter(
-                    (pl.col("portdest").cast(pl.Int64) >= selected_port[0]) & 
-                    (pl.col("portdest").cast(pl.Int64) <= selected_port[1])
+                    (pl.col("portdst").cast(pl.Int64) >= selected_port[0]) & 
+                    (pl.col("portdst").cast(pl.Int64) <= selected_port[1])
                 )
 
             # Affichage des données filtrées
@@ -93,4 +93,4 @@ with tab1:
 # Onglet Sankey
 with tab2:
     st.subheader("Sankey Diagram")
-
+    
