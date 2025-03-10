@@ -15,11 +15,13 @@ if st.session_state.parsed_df is None:
 data = st.session_state.parsed_df
 
 # Créer les onglets principaux
-tab1, tab2 = st.tabs(["Analysis", "Sankey"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Dataviz", "Analysis", "Foreign IP addresses", "Sankey"]
+)
 
 # Onglet Analysis
 with tab1:
-    st.subheader("Analysis")
+    st.subheader("Dataviz")
 
     # Vérifier que la colonne timestamp existe et est bien de type datetime
     if "timestamp" in data.columns and data["timestamp"].dtype == pl.Datetime:
@@ -134,13 +136,54 @@ with tab1:
 
             # Affichage des données filtrées
             st.write(f"### 🔍 Data filtered : {filtered_data.shape[0]} entries")
-            st.dataframe(filtered_data)
+            st.dataframe(filtered_data, use_container_width=True)
 
     else:
         st.warning(
             "The 'timestamp' column does not exist or is not in datetime format."
         )
 
-# Onglet Sankey
+# Onglet Analysis
 with tab2:
+    st.subheader("Analysis")
+
+    # Afficher ici le top 10 des ports inférieurs à 1024 avec accès autorisé
+    st.write(
+        "### 🔢 Top 10 ports with authorized access"
+        " (portdst < 1024 and action == 'PERMIT')"
+    )
+    top_ports = (
+        data.filter((pl.col("portdst") < 1024) & (pl.col("action") == "PERMIT"))
+        .group_by("portdst")
+        .agg(pl.count("portdst").alias("count"))
+        .sort("count", descending=True)
+        .head(10)
+    )
+    st.dataframe(top_ports, use_container_width=True)
+
+    # Afficher ici le top 5 des IP sources les plus émettrices
+    st.write("### 🌐 Top 5 emitting IP addresses (ipsource and action == 'PERMIT')")
+    top_ips = (
+        data.filter(pl.col("action") == "PERMIT")
+        .group_by("ipsrc")
+        .agg(pl.count("ipsrc").alias("count"))
+        .sort("count", descending=True)
+        .head(5)
+    )
+    st.dataframe(top_ips, use_container_width=True)
+
+
+# Onglet Foreign IP addresses
+with tab3:
+    # Afficher ici la liste des accès hors plan d’adressage universitaire
+    st.write("### 🚫 List of access outside the university network")
+    external_access = data.filter(
+        ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^192\.168\.")
+        & ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^10\.79\.")
+        & ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^159\.84\.")
+    )
+    st.dataframe(external_access, use_container_width=True)
+
+# Onglet Sankey
+with tab4:
     st.subheader("Sankey Diagram")
