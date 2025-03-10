@@ -49,6 +49,22 @@ log_definitions = {
             {"name": "Content", "pos": slice(6, None), "type": str},
         ],
     },
+    "log": {
+        "sep": ";",
+        "fields": [
+            {"name": "timestamp", "pos": 0, "type": str},
+            {"name": "ipsource", "pos": 1, "type": int},
+            {"name": "ipdestination", "pos": 2, "type": str},
+            {"name": "protocole", "pos": 3, "type": str},
+            {"name": "portsource", "pos": 4, "type": str},
+            {"name": "portdest", "pos": 5, "type": str},
+            {"name": "regle1", "pos": 6, "type": str},
+            {"name": "status", "pos": 7, "type": str},
+            {"name": "interface", "pos": 8, "type": str},
+            {"name": "inconnu", "pos": 9, "type": str},
+            {"name": "regle2", "pos": 10, "type": str},
+        ],
+    },
     "nginx": {
         "sep": " ",
         "fields": [
