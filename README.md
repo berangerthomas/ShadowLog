@@ -122,12 +122,6 @@ ShadowLog is built with:
 - **Plotly** for interactive visualizations
 - **scikit-learn** for machine learning capabilities
 
-## 🖼️ Screenshots
-
-![Preview 1](assets/preview1.png)
-![Preview 5](assets/preview5.png)
-![Preview 6](assets/preview6.png)
-
 ## 🤝 Contributing
 
 Contributions are welcome! To contribute:
