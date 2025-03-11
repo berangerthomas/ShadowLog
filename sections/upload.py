@@ -55,6 +55,11 @@ st.write(
     unsafe_allow_html=True,
 )
 
+# Add checkbox for date filtering
+apply_date_filter = st.checkbox(
+    "Apply date filtering (Nov 1, 2024 - Mar 1, 2025)", value=True
+)
+
 uploaded_file = st.file_uploader("Choose a log file")
 
 if "parsed_df" not in st.session_state:
@@ -63,36 +68,41 @@ if "parsed_df" not in st.session_state:
 if uploaded_file is not None:
     with st.spinner("Parsing and filtering the file..."):
         try:
-            st.session_state.parsed_df = (
-                pl.read_csv(
-                    uploaded_file,
-                    separator=";",
-                    has_header=False,
-                    infer_schema_length=10000,
-                    dtypes={
-                        "timestamp": pl.Datetime,
-                        "ipsrc": pl.Utf8,
-                        "ipdst": pl.Utf8,
-                        "protocole": pl.Utf8,
-                        "portsrc": pl.Int64,
-                        "portdst": pl.Int64,
-                        "rule": pl.Int64,
-                        "action": pl.Utf8,
-                        "interface": pl.Utf8,
-                        "unknown": pl.Utf8,
-                        "fw": pl.Int64,
-                    },
-                )
-                .filter(
+            # Read the CSV
+            st.session_state.parsed_df = pl.read_csv(
+                uploaded_file,
+                separator=";",
+                has_header=False,
+                infer_schema_length=10000,
+                dtypes={
+                    "timestamp": pl.Datetime,
+                    "ipsrc": pl.Utf8,
+                    "ipdst": pl.Utf8,
+                    "protocole": pl.Utf8,
+                    "portsrc": pl.Int64,
+                    "portdst": pl.Int64,
+                    "rule": pl.Int64,
+                    "action": pl.Utf8,
+                    "interface": pl.Utf8,
+                    "unknown": pl.Utf8,
+                    "fw": pl.Int64,
+                },
+            ).drop(["portsrc", "unknown", "fw"])
+
+            # Apply date filter only if checkbox is checked
+            if apply_date_filter:
+                st.session_state.parsed_df = st.session_state.parsed_df.filter(
                     (pl.col("timestamp") >= pl.datetime(2024, 11, 1))
                     & (pl.col("timestamp") < pl.datetime(2025, 3, 1))
                 )
-                .drop(["portsrc", "unknown", "fw"])
-            )
+
             row_count = st.session_state.parsed_df.height
-            st.success(
-                f"File parsed and filtered successfully! After filtering, {row_count:,} rows remain."
-            )
+            if row_count == 0:
+                st.error("No data found in the file.")
+            else:
+                st.success(
+                    f"File parsed and filtered successfully! After filtering, {row_count:,} rows remain."
+                )
         except Exception as e:
             st.error(f"Error parsing the file: {e}")
 
