@@ -10,63 +10,121 @@ pinned: false
 python_version: 3.11.11
 ---
 
-/* On-going work */
+## 🌐 Online Demo
 
-Hugging Face demo : https://huggingface.co/spaces/berangerthomas/shadowlog
+You can try ShadowLog online at our Hugging Face demo: 
+[https://huggingface.co/spaces/berangerthomas/shadowlog](https://huggingface.co/spaces/berangerthomas/shadowlog)
 
-# 🔐 ShadowLog  
-**Because attacks hide… but your logs don’t.**  
-*A Streamlit-Powered Cyber Threat Illuminator*  
 
-## 🕵️♂️ **Unmask the Invisible**  
-ShadowLog transforms raw logs into a battlefield map against cyber threats. Designed for SOC teams, IT admins, and security hunters, it exposes hidden attack patterns before they escalate.  
+## 🔐 ShadowLog - Your Advanced Log Analysis Platform
+**Because attacks hide… but your logs don't.**
 
----
+ShadowLog is a powerful Streamlit-based application designed to simplify and enhance log file analysis. Whether you're debugging an application, monitoring system performance, or investigating security incidents, ShadowLog provides the tools you need to efficiently process and extract insights from your log data.
 
-## 🚀 **Key Features**  
-- 🔍 **Deep-Log Illumination** : Visualize log patterns across servers, firewalls, and endpoints.  
-- ⚡ **Real-Time Threat Scoring** : AI-powered anomaly detection with severity alerts.  
-- 🎯 **Attack Timeline Reconstruction** : Map multi-stage breaches like a digital detective.  
-- 📊 **Custom Dashboards** : Build focused views for Zero-Day hunting, DDoS analysis, or insider threats.  
-- 🛡️ **One-Click MITRE ATT&CK Tagging** : Automatically classify threats using the industry framework.  
+## 📊 Key Features
 
----
+- **📁 Log File Upload & Parsing**: Upload and process log files with automatic parsing and filtering
+- **📈 Statistical Analysis**: Get comprehensive statistics and insights about your log data
+- **🔍 Advanced Data Visualization**: Interactive charts and graphs to spot patterns and anomalies
+- **🔎 Powerful Filtering**: Filter logs by time, action type, port ranges, and more
+- **🤖 AI-Powered Analytics**: Machine learning clustering to identify patterns and anomalies
+- **🚨 Threat Detection**: Identify suspicious activities and security threats in your logs
+- **🔒 Network Security Analysis**: Special tools for analyzing network security logs
 
-## 🛠️ **Getting Started**  
+## 🖼️ Screenshots
 
-### Prerequisites  
-- Python 3.11+  
-- Streamlit
+![Preview 1](assets/preview1.png)
+![Preview 5](assets/preview5.png)
+![Preview 6](assets/preview6.png)
 
-### Installation  
-```bash  
-git clone https://github.com/berangerthomas/shadowlog.git  
-cd shadowlog  
-pip install -r requirements.txt  
-```  
+## 🚀 Installation
 
-### Launch the Hunter  
-```bash  
-streamlit run shadowlog.py  
-```  
+### Prerequisites
 
----
+- Docker installed on your system
 
-## 🖥️ **Usage Scenarios**
+### Quick Start with Docker
 
-### 🗺️ Dashboard Overview
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/berangerthomas/ShadowLog.git
+   cd ShadowLog
+   ```
 
-![alt text](assets/preview1.png)
+2. Build the Docker image:
+   ```bash
+   docker build -t shadowlog .
+   ```
 
-### 🗺️ Temporal analysis
+3. Run the container:
+   ```bash
+   docker run -p 8501:8501 shadowlog
+   ```
 
-![alt text](assets/preview5.png)
+4. Open your browser and navigate to:
+   ```
+   http://localhost:8501
+   ```
 
-### 🗺️ Agregate Value Over Time
+### Manual Installation
 
-![alt text](assets/preview6.png)
----
+If you prefer not to use Docker:
 
-## 🤝 **Support & Contribution**  
-**Report a Ghost** : send us an email  
-**Contribute** : Open a GitHub Issue for feature requests or log parsers.  
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/ShadowLog.git
+   cd ShadowLog
+   ```
+
+2. Install the required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the application:
+   ```bash
+   streamlit run app.py
+   ```
+
+## 📝 Usage Guide
+
+1. **Upload Log Files**: Navigate to the Upload section and upload your log files
+2. **Analyze Data**: Use the Statistics section to get an overview of your log data
+3. **Visualize Patterns**: Explore visualizations in the Analyze section
+4. **Detect Anomalies**: Check the Alerts section for potential security issues
+5. **Apply AI Analysis**: Use the Analytics section for advanced pattern detection
+
+ShadowLog currently supports only one log format, describe on the "Upload" page :
+
+| Column name | timestamp | ipsrc | ipdst | protocole | portsrc | portdst | rule | action | interface | unknown | fw |
+|------------|-----------|-------|-------|-----------|---------|---------|------|--------|-----------|---------|-----|
+| Format | YYYY-MM-DD HH:MM:SS | str | str | str | int | int | int | str | str | str | int |
+
+## 🛠️ Technical Details
+
+ShadowLog is built with:
+- **Python 3.11+**
+- **Streamlit** for the web interface
+- **Polars** and **Pandas** for high-performance data processing
+- **Plotly** for interactive visualizations
+- **scikit-learn** for machine learning capabilities
+
+
+## 🤝 Contributing
+
+Contributions are welcome! To contribute:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👥 Authors
+
+- Nancy Randriamiarijaona
+- Cyril Kocab
+- Béranger Thomas
