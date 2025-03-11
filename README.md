@@ -28,8 +28,6 @@ ShadowLog is a powerful Streamlit-based application designed to simplify and enh
 - **🔍 Advanced Data Visualization**: Interactive charts and graphs to spot patterns and anomalies
 - **🔎 Powerful Filtering**: Filter logs by time, action type, port ranges, and more
 - **🤖 AI-Powered Analytics**: Machine learning clustering to identify patterns and anomalies
-- **🚨 Threat Detection**: Identify suspicious activities and security threats in your logs
-- **🔒 Network Security Analysis**: Special tools for analyzing network security logs
 
 ## 🖼️ Screenshots
 
