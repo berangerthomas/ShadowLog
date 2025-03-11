@@ -39,5 +39,5 @@ alerts = st.Page("sections/alerts.py", title="🚨 Alerts")
 about = st.Page("sections/about.py", title="📄 About")
 
 
-pg = st.navigation([home, upload, statistics, analyze, analytics, alerts])
+pg = st.navigation([home, upload, statistics, analyze, analytics])
 pg.run()
