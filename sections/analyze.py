@@ -1,9 +1,11 @@
-import polars as pl
-import streamlit as st
+import datetime
 import ipaddress
+
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
-import pandas as pd
+import polars as pl
+import streamlit as st
 
 if "parsed_df" not in st.session_state:
     st.session_state.parsed_df = None
@@ -24,22 +26,24 @@ university_subnets = [
     ipaddress.ip_network("159.84.0.0/16"),
 ]
 
+
 # Fonction pour vérifier si une IP appartient aux sous-réseaux universitaires
 def is_university_ip(ip):
     try:
         ip_obj = ipaddress.ip_address(ip)
         return any(ip_obj in subnet for subnet in university_subnets)
     except ValueError:
-        return False 
+        return False
+
 
 # Créer les onglets principaux
 tab1, tab2, tab3, tab4 = st.tabs(
-    ["Dataviz", "Analysis", "Foreign IP addresses", "Sankey"]
+    ["Explore data", "Analysis", "Foreign IP addresses", "Sankey"]
 )
 
 # Onglet Analysis
 with tab1:
-    st.subheader("Dataviz")
+    st.subheader("Explore data")
 
     # Vérifier que la colonne timestamp existe et est bien de type datetime
     if "timestamp" in data.columns and data["timestamp"].dtype == pl.Datetime:
@@ -47,14 +51,35 @@ with tab1:
         min_date = data["timestamp"].min().date()
         max_date = data["timestamp"].max().date()
 
+        # Convertir les dates min et max en datetime pour inclure heures et minutes
+        min_date_time = datetime.datetime.combine(min_date, datetime.time(0, 0))
+        max_date_time = datetime.datetime.combine(max_date, datetime.time(23, 59))
+
+        selected_date_range = st.slider(
+            "Filter by date & time",
+            min_value=min_date_time,
+            max_value=max_date_time,
+            value=(min_date_time, max_date_time),
+            format="YYYY-MM-DD HH:mm",
+        )
+        start_date, end_date = selected_date_range
+
         # Disposition des filtres en colonnes
         col1, col2, col3 = st.columns(3)
 
         # ---- FILTRE DATE ----
         with col1:
-            st.markdown("### 📅 Date")
-            start_date = st.date_input("Start Date", min_date)
-            end_date = st.date_input("End Date", max_date)
+            st.markdown("### 🛠 Protocol")
+            if "protocole" in data.columns:
+                unique_protocols = sorted(
+                    data["protocole"].unique().cast(pl.Utf8).to_list()
+                )
+                selected_protocol = st.selectbox(
+                    "Select a protocol", ["All"] + unique_protocols
+                )
+            else:
+                selected_protocol = "All"
+                st.warning("Column 'protocole' not found.")
 
         # ---- FILTRE action----
         with col2:
@@ -200,18 +225,15 @@ with tab2:
 
         # Compter les occurrences des IP sources bloquées
         blocked_ips = (
-            blocked_attempts
-            .group_by("ipsrc")
+            blocked_attempts.group_by("ipsrc")
             .agg(pl.count("ipsrc").alias("count"))
             .sort("count", descending=True)
         )
 
-       
         top_n = st.slider(" ", 5, 20, 10, key="top_n_slider")
 
         # Sélectionner le Top N des IP bloquées
         top_blocked_ips = blocked_ips.head(top_n)
-
 
         # ---- GRAPHIQUE AVEC PLOTLY ----
         color_palette = px.colors.sequential.Blues
@@ -224,11 +246,11 @@ with tab2:
                 text="count",
                 title=f"Top {top_n} Most Blocked IPs",
                 labels={"ipsrc": "IP Source", "count": "Number of Blocked Attempts"},
-                color_discrete_sequence=["#3d85c6"] 
+                color_discrete_sequence=["#3d85c6"],
             )
 
             # Amélioration du layout
-            fig.update_traces(texttemplate='%{text}', textposition='inside')
+            fig.update_traces(texttemplate="%{text}", textposition="inside")
             fig.update_layout(yaxis=dict(categoryorder="total ascending"))
 
             # Afficher le graphique interactif
@@ -242,7 +264,9 @@ with tab2:
     st.write("### 📊 Connection Activity Analysis")
     if "timestamp" in data.columns:
         # 📌 Ajout d'un sélecteur de fréquence
-        frequency = st.selectbox("Select frequency", ["second", "minute", "hour", "day"], index=1)
+        frequency = st.selectbox(
+            "Select frequency", ["second", "minute", "hour", "day"], index=1
+        )
 
         # Définition des formats selon la fréquence choisie
         if frequency == "second":
@@ -261,7 +285,9 @@ with tab2:
         # Filtrage et regroupement
         activity_data = (
             data.filter(pl.col("action") == "PERMIT")
-            .with_columns(pl.col("timestamp").dt.strftime(time_format).alias("time_period"))
+            .with_columns(
+                pl.col("timestamp").dt.strftime(time_format).alias("time_period")
+            )
             .group_by("time_period")
             .agg(pl.count("time_period").alias("connection_count"))
             .sort("time_period")
@@ -280,8 +306,11 @@ with tab2:
                 y="connection_count",
                 markers=True,
                 title=f"Connection Activity ({time_label} level)",
-                labels={"time_period": time_label, "connection_count": "Number of Connections"},
-                line_shape="spline"
+                labels={
+                    "time_period": time_label,
+                    "connection_count": "Number of Connections",
+                },
+                line_shape="spline",
             )
 
             # Afficher le graphique
@@ -298,20 +327,24 @@ with tab3:
 
     if "ipsrc" in data.columns and "action" in data.columns:
         # Conversion des IPs en chaînes de caractères pour éviter les erreurs de type
-        data = data.with_columns([
-            pl.col("ipsrc").cast(pl.Utf8).alias("ipsrc"),
-            pl.col("action").cast(pl.Utf8).alias("action")
-        ])
+        data = data.with_columns(
+            [
+                pl.col("ipsrc").cast(pl.Utf8).alias("ipsrc"),
+                pl.col("action").cast(pl.Utf8).alias("action"),
+            ]
+        )
 
         # Vérification des IPs avec la fonction is_university_ip
-        data = data.with_columns([
-            pl.col("ipsrc").map_elements(is_university_ip, return_dtype=pl.Boolean).alias("is_src_university_ip")
-        ])
+        data = data.with_columns(
+            [
+                pl.col("ipsrc")
+                .map_elements(is_university_ip, return_dtype=pl.Boolean)
+                .alias("is_src_university_ip")
+            ]
+        )
 
         # filtrer toutes les connexions impliquant une adresse externe
-        intrusion_attempts = data.filter(
-            (~pl.col("is_src_university_ip"))
-        )
+        intrusion_attempts = data.filter((~pl.col("is_src_university_ip")))
         # Ajout d'un filtre par action
         selected_action = st.selectbox("Select action type", ["All", "PERMIT", "DENY"])
 
@@ -321,23 +354,26 @@ with tab3:
             )
         # Affichage des accès externes
         st.write(f"### 🔍 External accesses: {intrusion_attempts.shape[0]} entries")
-        st.dataframe( intrusion_attempts.drop(["is_src_university_ip"]), use_container_width=True)
+        st.dataframe(
+            intrusion_attempts.drop(["is_src_university_ip"]), use_container_width=True
+        )
 
     else:
         st.warning("Columns 'ipsrc' not found.")
 
 
-
 # Onglet Sankey
 with tab4:
     st.subheader("Sankey Diagram")
-    
+
     def create_sankey(df, source_col, target_col):
-        """ Crée un diagramme de Sankey entre deux colonnes """
+        """Crée un diagramme de Sankey entre deux colonnes"""
         df_grouped = df.group_by([source_col, target_col]).len().to_pandas()
 
         # Création des nœuds
-        labels = list(pd.concat([df_grouped[source_col], df_grouped[target_col]]).unique())
+        labels = list(
+            pd.concat([df_grouped[source_col], df_grouped[target_col]]).unique()
+        )
         label_to_index = {label: i for i, label in enumerate(labels)}
 
         # Création des liens
@@ -346,27 +382,33 @@ with tab4:
         values = df_grouped["len"]
 
         # Création du Sankey Diagram
-        fig = go.Figure(go.Sankey(
-            node=dict(
-                pad=15, thickness=20, line=dict(color="black", width=0.5),
-                label=labels
-            ),
-            link=dict(
-                source=sources, target=targets, value=values
+        fig = go.Figure(
+            go.Sankey(
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color="black", width=0.5),
+                    label=labels,
+                ),
+                link=dict(source=sources, target=targets, value=values),
             )
-        ))
-        
-        fig.update_layout(title_text=f"Flow between {source_col} and {target_col}", font_size=10)
+        )
+
+        fig.update_layout(
+            title_text=f"Flow between {source_col} and {target_col}", font_size=10
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Connections where access were identified as : PERMIT")
-    
+
     data_filtered = data.filter(pl.col("action") == "PERMIT")
     # 🔹 Sankey entre IP source et IP destination
     create_sankey(data_filtered, "ipsrc", "ipdst")
 
     # 🔹 Sankey entre IP source et port destination
-    df = data_filtered.with_columns(data_filtered["portdst"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    df = data_filtered.with_columns(
+        data_filtered["portdst"].cast(pl.Utf8)
+    )  # Convertir les ports en chaînes pour éviter les erreurs
     create_sankey(df, "ipsrc", "portdst")
 
     st.subheader("Connections where access were identified as : DENY")
@@ -376,6 +418,7 @@ with tab4:
     create_sankey(data_filtered, "ipsrc", "ipdst")
 
     # 🔹 Sankey entre IP source et port destination
-    df = data_filtered.with_columns(data_filtered["portdst"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    df = data_filtered.with_columns(
+        data_filtered["portdst"].cast(pl.Utf8)
+    )  # Convertir les ports en chaînes pour éviter les erreurs
     create_sankey(df, "ipsrc", "portdst")
-
