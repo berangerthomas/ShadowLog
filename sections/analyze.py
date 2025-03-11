@@ -2,6 +2,7 @@ import polars as pl
 import streamlit as st
 import ipaddress
 import plotly.express as px
+import plotly.graph_objs as go
 import pandas as pd
 
 if "parsed_df" not in st.session_state:
@@ -316,3 +317,38 @@ with tab3:
 # Onglet Sankey
 with tab4:
     st.subheader("Sankey Diagram")
+    
+    def create_sankey(df, source_col, target_col):
+        """ Crée un diagramme de Sankey entre deux colonnes """
+        df_grouped = df.groupby([source_col, target_col]).len().to_pandas()
+
+        # Création des nœuds
+        labels = list(pd.concat([df_grouped[source_col], df_grouped[target_col]]).unique())
+        label_to_index = {label: i for i, label in enumerate(labels)}
+
+        # Création des liens
+        sources = df_grouped[source_col].map(label_to_index)
+        targets = df_grouped[target_col].map(label_to_index)
+        values = df_grouped["len"]
+
+        # Création du Sankey Diagram
+        fig = go.Figure(go.Sankey(
+            node=dict(
+                pad=15, thickness=20, line=dict(color="black", width=0.5),
+                label=labels
+            ),
+            link=dict(
+                source=sources, target=targets, value=values
+            )
+        ))
+        
+        fig.update_layout(title_text=f"Flux entre {source_col} et {target_col}", font_size=10)
+        st.plotly_chart(fig, use_container_width=True)
+
+    # 🔹 Sankey entre IP source et IP destination
+    create_sankey(data, "ip_source", "ip_destination")
+
+    # 🔹 Sankey entre IP source et port destination
+    df = df.with_columns(df["port_destination"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    create_sankey(data, "ip_source", "port_destination")
+
