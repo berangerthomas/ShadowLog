@@ -239,34 +239,49 @@ with tab2:
         st.warning("Columns 'ipsrc' or 'action' not found.")
 
     # Graphique de série temporelle des connexions par heure
-    st.write("### 📊 Hourly Connection Activity")
-
+    st.write("### 📊 Connection Activity Analysis")
     if "timestamp" in data.columns:
-        # Extraire uniquement les connexions autorisées (PERMIT) et valider le format datetime
+        # 📌 Ajout d'un sélecteur de fréquence
+        frequency = st.selectbox("Select frequency", ["second", "minute", "hour", "day"], index=1)
+
+        # Définition des formats selon la fréquence choisie
+        if frequency == "second":
+            time_format = "%Y-%m-%d %H:%M:%S"
+            time_label = "Second"
+        elif frequency == "minute":
+            time_format = "%Y-%m-%d %H:%M:00"
+            time_label = "Minute"
+        elif frequency == "hour":
+            time_format = "%Y-%m-%d %H:00:00"
+            time_label = "Hour"
+        else:
+            time_format = "%Y-%m-%d"
+            time_label = "Day"
+
+        # Filtrage et regroupement
         activity_data = (
-            data
-            .filter(pl.col("action") == "PERMIT")  # Ne garder que les connexions autorisées
-            .with_columns(pl.col("timestamp").dt.strftime("%Y-%m-%d %H:00:00").alias("hour"))  # Normaliser à l'heure
-            .group_by("hour")
-            .agg(pl.count("hour").alias("connection_count"))  # Compter les connexions par heure
-            .sort("hour")  # Trier chronologiquement
+            data.filter(pl.col("action") == "PERMIT")
+            .with_columns(pl.col("timestamp").dt.strftime(time_format).alias("time_period"))
+            .group_by("time_period")
+            .agg(pl.count("time_period").alias("connection_count"))
+            .sort("time_period")
         )
 
-        # Vérifier si on a des données après filtrage
+        # Vérifier s'il y a des données
         if not activity_data.is_empty():
-            # Convertir en DataFrame Pandas pour Plotly
+            # Convertir en Pandas
             df_activity = activity_data.to_pandas()
-            df_activity["hour"] = pd.to_datetime(df_activity["hour"])  # Assurer le bon format datetime
+            df_activity["time_period"] = pd.to_datetime(df_activity["time_period"])
 
             # Tracer le graphique
             fig = px.line(
                 df_activity,
-                x="hour",
+                x="time_period",
                 y="connection_count",
-                markers=True,  # Ajouter des points pour bien voir les pics
-                title="Hourly Connection Activity",
-                labels={"hour": "Hour", "connection_count": "Number of Connections"},
-                line_shape="spline"  # Rendre les courbes lisses
+                markers=True,
+                title=f"Connection Activity ({time_label} level)",
+                labels={"time_period": time_label, "connection_count": "Number of Connections"},
+                line_shape="spline"
             )
 
             # Afficher le graphique
@@ -275,7 +290,6 @@ with tab2:
             st.info("No connection data found for the selected period.")
     else:
         st.warning("Column 'timestamp' not found.")
-
 
 
 # Onglet Foreign IP addresses
