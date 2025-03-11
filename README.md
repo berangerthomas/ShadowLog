@@ -29,12 +29,6 @@ ShadowLog is a powerful Streamlit-based application designed to simplify and enh
 - **🔎 Powerful Filtering**: Filter logs by time, action type, port ranges, and more
 - **🤖 AI-Powered Analytics**: Machine learning clustering to identify patterns and anomalies
 
-## 🖼️ Screenshots
-
-![Preview 1](assets/preview1.png)
-![Preview 5](assets/preview5.png)
-![Preview 6](assets/preview6.png)
-
 ## 🚀 Installation
 
 ### Prerequisites
@@ -107,6 +101,11 @@ ShadowLog is built with:
 - **Plotly** for interactive visualizations
 - **scikit-learn** for machine learning capabilities
 
+## 🖼️ Screenshots
+
+![Preview 1](assets/preview1.png)
+![Preview 5](assets/preview5.png)
+![Preview 6](assets/preview6.png)
 
 ## 🤝 Contributing
 
