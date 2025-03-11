@@ -80,7 +80,6 @@ if st.button("Start clustering"):
 
 
                 # Visualisation des clusters (en 2D avec PCA)
-                st.write(st.session_state.parsed_df.select("ipsrc").to_numpy().flatten())
                 fig = px.scatter(
                     x=df_ech.select("Component 1").to_numpy().flatten(),
                     y=df_ech.select("Component 2").to_numpy().flatten(),
