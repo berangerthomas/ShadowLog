@@ -100,8 +100,8 @@ with tab1:
             st.markdown("### 🔢 Port")
             if "portdst" in data.columns:
                 min_port, max_port = (
-                    int(data["portdst"].min()),
-                    int(data["portdst"].max()),
+                    int(data["portdst"].cast(pl.Utf8).min()),
+                    int(data["portdst"].cast(pl.Utf8).max()),
                 )
 
                 # Initialize port range in session state if not present
@@ -272,7 +272,7 @@ with tab3:
         " (portdst < 1024 and action == 'PERMIT')"
     )
     top_ports = (
-        data.filter((pl.col("portdst") < 1024) & (pl.col("action") == "PERMIT"))
+        data.filter((pl.col("portdst").cast(pl.Int64) < 1024) & (pl.col("action") == "PERMIT"))
         .group_by("portdst")
         .agg(pl.count("portdst").alias("count"))
         .sort("count", descending=True)
@@ -483,8 +483,8 @@ with tab5:
 
     # 🔹 Sankey entre IP source et port destination
     df = data_filtered.with_columns(
-        data_filtered["portdst"].cast(pl.Utf8)
-    )  # Convertir les ports en chaînes pour éviter les erreurs
+        data_filtered["portdst"]
+    ) 
     create_sankey(df, "ipsrc", "portdst")
 
     st.subheader("Connections where access were identified as : DENY")
@@ -495,6 +495,6 @@ with tab5:
 
     # 🔹 Sankey entre IP source et port destination
     df = data_filtered.with_columns(
-        data_filtered["portdst"].cast(pl.Utf8)
-    )  # Convertir les ports en chaînes pour éviter les erreurs
+        data_filtered["portdst"]
+    )
     create_sankey(df, "ipsrc", "portdst")
