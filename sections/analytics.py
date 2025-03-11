@@ -51,14 +51,18 @@ if st.button("Start clustering"):
         with st.spinner("Searching the clusters..."):
             try:
 
-                pca = PCA(n_components=2)
-                df_pca = pca.fit_transform(data_encoded.to_pandas())
+                ncp = 2
+                pca = PCA(n_components=ncp)
+                df_pca = pca.fit_transform(data_encoded.to_pandas())                
+
+                cp1_var = round(pca.explained_variance_ratio_[0],3)
+                cp2_var = round(pca.explained_variance_ratio_[1],3)
 
                 # Appliquer K-Means avec k optimal choisi
                 k_optimal = 2  # Par exemple, supposons que k = 3
                 kmeans = KMeans(n_clusters=k_optimal, random_state=42)
                 preds = kmeans.fit_predict(df_pca)
-                df_pca = pl.from_pandas(pd.DataFrame(df_pca, columns=[f"Component {i+1}" for i in range(k_optimal)]))
+                df_pca = pl.from_pandas(pd.DataFrame(df_pca, columns=[f"Component {i+1}" for i in range(ncp)]))
                 df_clust = df_pca.with_columns(pl.Series(values=preds, name='cluster_kmeans'))
 
                 if df_clust.shape[0] > 200000: # 200k
@@ -75,29 +79,29 @@ if st.button("Start clustering"):
                 ###############################################################
 
 
-                # Visualisation des clusters (en 2D avec PCA)                
-
-                # pca = PCA(n_components=2)
-                # df_pca = pca.fit_transform(df_ech.to_pandas())
-
+                # Visualisation des clusters (en 2D avec PCA)
+                st.write(st.session_state.parsed_df.select("ipsrc").to_numpy().flatten())
                 fig = px.scatter(
                     x=df_ech.select("Component 1").to_numpy().flatten(),
                     y=df_ech.select("Component 2").to_numpy().flatten(),
                     color=df_ech.select('cluster_kmeans').to_numpy().flatten().astype(str),
                     color_discrete_map={"0": "rebeccapurple", "1": "gold"},
-                    title='Clustering coupled with PCA',
+                    title=f'Clustering coupled with PCA ({pca.explained_variance_ratio_.sum():.3f})',
                     labels={'x': 'Component 1', 'y': 'Component 2', 'color': 'Cluster'},
+                    hover_data={
+                        "ip": st.session_state.parsed_df.select("ipsrc").to_numpy().flatten()
+                    }
                 )
 
                 fig.update_layout(
-                    xaxis_title='Component 1',
-                    yaxis_title='Component 2'
+                    xaxis_title=f'Component 1 ({cp1_var})',
+                    yaxis_title=f'Component 2 ({cp2_var})'
                 )
                 # fig.show()
                 st.plotly_chart(fig, use_container_width=True)
                 
             except Exception as e:
-                st.error(f"An error occured while doing the clustering : {e.with_traceback(None)}")
+                st.error(f"An error occured while doing the clustering : {e}")
 
         with st.spinner("Performing some more data analysis..."):
             try:
@@ -131,33 +135,6 @@ if st.button("Start clustering"):
                         showlegend=True
                     )
                     st.plotly_chart(fig, use_container_width=True)
-
-                # # Analyse de la variable quantitative par cluster
-                # for col in quanti.columns: # protocole, rule, action
-                #     fig = make_subplots(rows=1, cols=2)
-
-                #     data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
-
-                #     # Ajouter le premier histogramme
-                #     fig.add_trace(
-                #         go.Histogram(x=data_filtered[col], name="Cluster 0", marker_color="rebeccapurple"),
-                #         row=1, col=1
-                #     )
-
-                #     data_filtered = data.filter(pl.col("cluster_kmeans") == 1)
-
-                #     # Ajouter le deuxième histogramme
-                #     fig.add_trace(
-                #         go.Histogram(x=data_filtered[col], name="Cluster 1", marker_color="gold"),
-                #         row=1, col=2
-                #     )
-
-                #     # Mettre à jour la mise en page pour améliorer l'apparence
-                #     fig.update_layout(
-                #         title_text=f"Histograms of {col}",
-                #         showlegend=True,
-                #     )
-                #     st.plotly_chart(fig, use_container_width=True)
 
             except Exception as e:
                 st.error(f"An error occured while doing the data analysis : {e}")
