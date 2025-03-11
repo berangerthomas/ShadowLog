@@ -1,5 +1,9 @@
 import polars as pl
 import streamlit as st
+import ipaddress
+import plotly.express as px
+import plotly.graph_objs as go
+import pandas as pd
 
 if "parsed_df" not in st.session_state:
     st.session_state.parsed_df = None
@@ -13,6 +17,20 @@ if st.session_state.parsed_df is None:
     st.stop()
 
 data = st.session_state.parsed_df
+
+university_subnets = [
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("10.79.0.0/16"),
+    ipaddress.ip_network("159.84.0.0/16"),
+]
+
+# Fonction pour vérifier si une IP appartient aux sous-réseaux universitaires
+def is_university_ip(ip):
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        return any(ip_obj in subnet for subnet in university_subnets)
+    except ValueError:
+        return False 
 
 # Créer les onglets principaux
 tab1, tab2, tab3, tab4 = st.tabs(
@@ -172,18 +190,165 @@ with tab2:
     )
     st.dataframe(top_ips, use_container_width=True)
 
+    # Graphique
+
+    st.write("### 🔴 Analysis of Blocked Attempts")
+
+    if "ipsrc" in data.columns and "action" in data.columns:
+        # Filtrer uniquement les tentatives bloquées
+        blocked_attempts = data.filter(pl.col("action") == "DENY")
+
+        # Compter les occurrences des IP sources bloquées
+        blocked_ips = (
+            blocked_attempts
+            .group_by("ipsrc")
+            .agg(pl.count("ipsrc").alias("count"))
+            .sort("count", descending=True)
+        )
+
+       
+        top_n = st.slider(" ", 5, 20, 10, key="top_n_slider")
+
+        # Sélectionner le Top N des IP bloquées
+        top_blocked_ips = blocked_ips.head(top_n)
+
+
+        # ---- GRAPHIQUE AVEC PLOTLY ----
+        color_palette = px.colors.sequential.Blues
+        if not top_blocked_ips.is_empty():
+            fig = px.bar(
+                top_blocked_ips.to_pandas(),  # Convertir en DataFrame Pandas pour Plotly
+                x="count",
+                y="ipsrc",
+                orientation="h",
+                text="count",
+                title=f"Top {top_n} Most Blocked IPs",
+                labels={"ipsrc": "IP Source", "count": "Number of Blocked Attempts"},
+                color_discrete_sequence=["#3d85c6"] 
+            )
+
+            # Amélioration du layout
+            fig.update_traces(texttemplate='%{text}', textposition='inside')
+            fig.update_layout(yaxis=dict(categoryorder="total ascending"))
+
+            # Afficher le graphique interactif
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No blocked attempts found.")
+    else:
+        st.warning("Columns 'ipsrc' or 'action' not found.")
+
+    # Graphique de série temporelle des connexions par heure
+    st.write("### 📊 Hourly Connection Activity")
+
+    if "timestamp" in data.columns:
+        # Extraire uniquement les connexions autorisées (PERMIT) et valider le format datetime
+        activity_data = (
+            data
+            .filter(pl.col("action") == "PERMIT")  # Ne garder que les connexions autorisées
+            .with_columns(pl.col("timestamp").dt.strftime("%Y-%m-%d %H:00:00").alias("hour"))  # Normaliser à l'heure
+            .group_by("hour")
+            .agg(pl.count("hour").alias("connection_count"))  # Compter les connexions par heure
+            .sort("hour")  # Trier chronologiquement
+        )
+
+        # Vérifier si on a des données après filtrage
+        if not activity_data.is_empty():
+            # Convertir en DataFrame Pandas pour Plotly
+            df_activity = activity_data.to_pandas()
+            df_activity["hour"] = pd.to_datetime(df_activity["hour"])  # Assurer le bon format datetime
+
+            # Tracer le graphique
+            fig = px.line(
+                df_activity,
+                x="hour",
+                y="connection_count",
+                markers=True,  # Ajouter des points pour bien voir les pics
+                title="Hourly Connection Activity",
+                labels={"hour": "Hour", "connection_count": "Number of Connections"},
+                line_shape="spline"  # Rendre les courbes lisses
+            )
+
+            # Afficher le graphique
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No connection data found for the selected period.")
+    else:
+        st.warning("Column 'timestamp' not found.")
+
+
 
 # Onglet Foreign IP addresses
 with tab3:
-    # Afficher ici la liste des accès hors plan d’adressage universitaire
-    st.write("### 🚫 List of access outside the university network")
-    external_access = data.filter(
-        ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^192\.168\.")
-        & ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^10\.79\.")
-        & ~pl.col("ipdst").cast(pl.Utf8).str.contains(r"^159\.84\.")
-    )
-    st.dataframe(external_access, use_container_width=True)
+    st.subheader("🚫 List of access outside the university network")
+
+    if "ipsrc" in data.columns and "action" in data.columns:
+        # Conversion des IPs en chaînes de caractères pour éviter les erreurs de type
+        data = data.with_columns([
+            pl.col("ipsrc").cast(pl.Utf8).alias("ipsrc"),
+            pl.col("action").cast(pl.Utf8).alias("action")
+        ])
+
+        # Vérification des IPs avec la fonction is_university_ip
+        data = data.with_columns([
+            pl.col("ipsrc").map_elements(is_university_ip, return_dtype=pl.Boolean).alias("is_src_university_ip")
+        ])
+
+        # filtrer toutes les connexions impliquant une adresse externe
+        intrusion_attempts = data.filter(
+            (~pl.col("is_src_university_ip"))
+        )
+        # Ajout d'un filtre par action
+        selected_action = st.selectbox("Select action type", ["All", "PERMIT", "DENY"])
+
+        if selected_action != "All":
+            intrusion_attempts = intrusion_attempts.filter(
+                pl.col("action") == selected_action
+            )
+        # Affichage des accès externes
+        st.write(f"### 🔍 External accesses: {intrusion_attempts.shape[0]} entries")
+        st.dataframe( intrusion_attempts.drop(["is_src_university_ip"]), use_container_width=True)
+
+    else:
+        st.warning("Columns 'ipsrc' not found.")
+
+
 
 # Onglet Sankey
 with tab4:
     st.subheader("Sankey Diagram")
+    
+    def create_sankey(df, source_col, target_col):
+        """ Crée un diagramme de Sankey entre deux colonnes """
+        df_grouped = df.groupby([source_col, target_col]).len().to_pandas()
+
+        # Création des nœuds
+        labels = list(pd.concat([df_grouped[source_col], df_grouped[target_col]]).unique())
+        label_to_index = {label: i for i, label in enumerate(labels)}
+
+        # Création des liens
+        sources = df_grouped[source_col].map(label_to_index)
+        targets = df_grouped[target_col].map(label_to_index)
+        values = df_grouped["len"]
+
+        # Création du Sankey Diagram
+        fig = go.Figure(go.Sankey(
+            node=dict(
+                pad=15, thickness=20, line=dict(color="black", width=0.5),
+                label=labels
+            ),
+            link=dict(
+                source=sources, target=targets, value=values
+            )
+        ))
+        
+        fig.update_layout(title_text=f"Flux entre {source_col} et {target_col}", font_size=10)
+        st.plotly_chart(fig, use_container_width=True)
+
+    # 🔹 Sankey entre IP source et IP destination
+    create_sankey(data, "ip_source", "ip_destination")
+
+    # 🔹 Sankey entre IP source et port destination
+    df = df.with_columns(df["port_destination"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    create_sankey(data, "ip_source", "port_destination")
+

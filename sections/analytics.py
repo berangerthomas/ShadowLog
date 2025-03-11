@@ -7,7 +7,8 @@ import polars as pl
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 
 if "parsed_df" not in st.session_state:
     st.session_state.parsed_df = None
@@ -21,7 +22,7 @@ if st.session_state.parsed_df is None:
     st.stop()
 
 data = st.session_state.parsed_df
-data = data.select(["portdest","protocole","regle1","status"])
+data = data.select(["portdst","protocole","regle","action"])
 
 # Sélectionner toutes les colonnes numériques
 quanti = data.select(pl.col(pl.Int64))
@@ -75,21 +76,13 @@ if st.button("Start clustering"):
                                     .groupby("cluster_kmeans", group_keys=False)
                                     .apply(lambda x: x.sample(frac=0.05, random_state=42))
                                     )
-                # dbscan = DBSCAN(eps=0.5, min_samples=10)
-                # preds = dbscan.fit_predict(df.to_pandas())
-                # df = df.with_columns(pl.Series(values=preds, name='cluster_dbscan'))
-
-                # agg_clustering = AgglomerativeClustering(n_clusters=2)
-                # preds = agg_clustering.fit_predict(df.to_pandas())
-                # df = df.with_columns(pl.Series(values=preds, name='cluster_agg'))                
 
                 ###############################################################
                 ####              Visualisation des clusters               ####
                 ###############################################################
 
 
-                # Visualisation des clusters (en 2D avec PCA)
-                from sklearn.decomposition import PCA
+                # Visualisation des clusters (en 2D avec PCA)                
 
                 pca = PCA(n_components=2)
                 df_pca = pca.fit_transform(df_ech.to_pandas())
@@ -117,27 +110,8 @@ if st.button("Start clustering"):
         with st.spinner("Performing some more data analysis..."):
             try:
                 data = data.with_columns(pl.Series(name="cluster_kmeans", values=df_clust.select("cluster_kmeans")))
-                cols = ["protocole","regle1","status"]
-                for col in cols:                                   
-                    # fig = px.bar(freq_df, x=col, y='frequency',                                 
-                    #             title=f'{col} frequency',
-                    #             labels={'categorie': 'Category', 'frequence': 'Frequency'},
-                    #             color=col)
-                    # fig.update_layout(xaxis_title='Categories', yaxis_title='Frequency')
-                    # st.plotly_chart(fig, use_container_width=True)
-
-                    # data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
-                    # freq_df = data_filtered.group_by(col).agg(pl.count(col).alias("frequency"))
-                    
-                    # fig = px.bar(freq_df, x=col, y='frequency',                                 
-                    #             title=f'{col} frequency',
-                    #             labels={'categorie': 'Category', 'frequence': 'Frequency'},
-                    #             color=col)
-                    # fig.update_layout(xaxis_title='Categories', yaxis_title='Frequency')
-                    # st.plotly_chart(fig, use_container_width=True)
-
-
-
+                # Analyse des variables qualitatives par cluster
+                for col in quali.columns: # protocole, regle, action
                     fig = make_subplots(rows=1, cols=2)
 
                     data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
@@ -166,13 +140,15 @@ if st.button("Start clustering"):
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
+                # Analyse de la variable quantitative par cluster
+
                 fig = make_subplots(rows=1, cols=2)
 
                 data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
 
                 # Ajouter le premier histogramme
                 fig.add_trace(
-                    go.Histogram(x=data_filtered["portdest"], name="Cluster 0", marker_color="rebeccapurple"),
+                    go.Histogram(x=data_filtered["portdst"], name="Cluster 0", marker_color="rebeccapurple"),
                     row=1, col=1
                 )
 
@@ -180,7 +156,7 @@ if st.button("Start clustering"):
 
                 # Ajouter le deuxième histogramme
                 fig.add_trace(
-                    go.Histogram(x=data_filtered["portdest"], name="Cluster 1", marker_color="gold"),
+                    go.Histogram(x=data_filtered["portdst"], name="Cluster 1", marker_color="gold"),
                     row=1, col=2
                 )
 
@@ -195,18 +171,3 @@ if st.button("Start clustering"):
                 st.error(f"An error occured while doing the data analysis : {e}")
     else:
         st.warning("Please parse the log file first.")
-
-# Choisir le nombre de clusters (méthode du coude)
-# inertia = []
-# for k in range(1, 11):
-#     kmeans = KMeans(n_clusters=k, random_state=42)
-#     kmeans.fit(df_scaled.to_pandas())
-#     inertia.append(kmeans.inertia_)
-
-# # Tracer la courbe pour la méthode du coude
-# plt.plot(range(1, 11), inertia, marker='o')
-# plt.title('Méthode du coude')
-# plt.xlabel('Nombre de clusters')
-# plt.ylabel('Inertie')
-# plt.show()
-
