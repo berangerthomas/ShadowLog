@@ -37,8 +37,8 @@ def is_university_ip(ip):
 
 
 # Créer les onglets principaux
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Explore data", "Analysis", "Foreign IP addresses", "Sankey"]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Explore data", "Dataviz", "Analysis", "Foreign IP addresses", "Sankey"]
 )
 
 # Onglet Analysis
@@ -188,6 +188,82 @@ with tab1:
 
 # Onglet Analysis
 with tab2:
+    st.subheader("Dataviz")
+
+    # Créer ici un scatter plot permettant une Visualisation interactive des données (IP source avec le nombre
+    # d’occurrences de destination contactées, incluant le nombre de flux rejetés et autorisés).
+
+    # Agréger les données par IP source
+    df_agg = data.group_by("ipsrc").agg(
+        [
+            pl.col("ipdst").n_unique().alias("distinct_destinations"),
+            ((pl.col("action") == "PERMIT").cast(pl.Int64)).sum().alias("count_permit"),
+            ((pl.col("action") == "DENY").cast(pl.Int64)).sum().alias("count_deny"),
+        ]
+    )
+
+    # Créer un scatter plot
+    if not df_agg.is_empty():
+        # We need to recreate the aggregation to count distinct destinations per action type
+        permit_agg = (
+            data.filter(pl.col("action") == "PERMIT")
+            .group_by("ipsrc")
+            .agg(
+                [
+                    pl.col("ipdst").n_unique().alias("distinct_destinations"),
+                    pl.count("ipsrc").alias("connections"),
+                ]
+            )
+            .with_columns(pl.lit("PERMIT").alias("action"))
+        )
+
+        deny_agg = (
+            data.filter(pl.col("action") == "DENY")
+            .group_by("ipsrc")
+            .agg(
+                [
+                    pl.col("ipdst").n_unique().alias("distinct_destinations"),
+                    pl.count("ipsrc").alias("connections"),
+                ]
+            )
+            .with_columns(pl.lit("DENY").alias("action"))
+        )
+
+        # Combine both datasets
+        combined_df = pl.concat([permit_agg, deny_agg])
+
+        # Convert to pandas
+        df_pandas = combined_df.to_pandas()
+
+        # Create the scatter plot with two points per IP source (one for PERMIT, one for DENY)
+        fig = px.scatter(
+            df_pandas,
+            x="ipsrc",
+            y="distinct_destinations",
+            color="action",
+            size="connections",
+            color_discrete_map={"PERMIT": "blue", "DENY": "red"},
+            hover_data=["connections", "action"],
+            title="Number of Distinct Destinations Contacted by Each IP Source",
+            labels={
+                "ipsrc": "Source IP Address",
+                "distinct_destinations": "Number of Distinct Destinations",
+                "connections": "Number of Connections",
+                "action": "Action",
+            },
+        )
+
+        # Improve layout for better readability
+        fig.update_layout(
+            xaxis={"categoryorder": "total descending"}, legend_title="Action Type"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No data available for scatter plot.")
+
+# Onglet Analysis
+with tab3:
     st.subheader("Analysis")
 
     # Afficher ici le top 10 des ports inférieurs à 1024 avec accès autorisé
@@ -322,7 +398,7 @@ with tab2:
 
 
 # Onglet Foreign IP addresses
-with tab3:
+with tab4:
     st.subheader("🚫 List of access outside the university network")
 
     if "ipsrc" in data.columns and "action" in data.columns:
@@ -363,7 +439,7 @@ with tab3:
 
 
 # Onglet Sankey
-with tab4:
+with tab5:
     st.subheader("Sankey Diagram")
 
     def create_sankey(df, source_col, target_col):
