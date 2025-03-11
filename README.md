@@ -35,6 +35,27 @@ ShadowLog is a powerful Streamlit-based application designed to simplify and enh
 
 - Docker installed on your system
 
+### Quick Start with Docker Image
+
+If you have a prebuilt "shadowlog.tar" Docker image, you can load and run it as follows:
+
+1. Load the image:
+   ```bash
+   docker load -i shadowlog.tar
+   ```
+2. Verify the image name (usually "shadowlog") by running:
+   ```bash
+   docker images
+   ```
+3. Run the container:
+   ```bash
+   docker run -p 8501:8501 shadowlog
+   ```
+4. Navigate to:
+   ```
+   http://localhost:8501
+   ```
+
 ### Quick Start with Docker
 
 1. Clone the repository:
