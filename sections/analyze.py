@@ -320,7 +320,7 @@ with tab4:
     
     def create_sankey(df, source_col, target_col):
         """ Crée un diagramme de Sankey entre deux colonnes """
-        df_grouped = df.groupby([source_col, target_col]).len().to_pandas()
+        df_grouped = df.group_by([source_col, target_col]).len().to_pandas()
 
         # Création des nœuds
         labels = list(pd.concat([df_grouped[source_col], df_grouped[target_col]]).unique())
@@ -342,13 +342,26 @@ with tab4:
             )
         ))
         
-        fig.update_layout(title_text=f"Flux entre {source_col} et {target_col}", font_size=10)
+        fig.update_layout(title_text=f"Flow between {source_col} and {target_col}", font_size=10)
         st.plotly_chart(fig, use_container_width=True)
 
+    st.subheader("Connections where access were identified as : PERMIT")
+    
+    data_filtered = data.filter(pl.col("action") == "PERMIT")
     # 🔹 Sankey entre IP source et IP destination
-    create_sankey(data, "ip_source", "ip_destination")
+    create_sankey(data_filtered, "ipsrc", "ipdst")
 
     # 🔹 Sankey entre IP source et port destination
-    df = df.with_columns(df["port_destination"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
-    create_sankey(data, "ip_source", "port_destination")
+    df = data_filtered.with_columns(data_filtered["portdst"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    create_sankey(df, "ipsrc", "portdst")
+
+    st.subheader("Connections where access were identified as : DENY")
+
+    data_filtered = data.filter(pl.col("action") == "DENY")
+    # 🔹 Sankey entre IP source et IP destination
+    create_sankey(data_filtered, "ipsrc", "ipdst")
+
+    # 🔹 Sankey entre IP source et port destination
+    df = data_filtered.with_columns(data_filtered["portdst"].cast(pl.Utf8))  # Convertir les ports en chaînes pour éviter les erreurs
+    create_sankey(df, "ipsrc", "portdst")
 

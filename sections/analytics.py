@@ -22,7 +22,7 @@ if st.session_state.parsed_df is None:
     st.stop()
 
 data = st.session_state.parsed_df
-data = data.select(["portdst","protocole","regle","action"])
+data = data.select(["portdst","protocole","rule","action"])
 
 # Sélectionner toutes les colonnes numériques
 quanti = data.select(pl.col(pl.Int64))
@@ -72,9 +72,13 @@ if st.button("Start clustering"):
                 preds = kmeans.fit_predict(df.to_pandas())
                 df_clust = df.with_columns(pl.Series(values=preds, name='cluster_kmeans'))
 
+                if df_clust.shape[0] > 200000: # 200k
+                    perc = 200000/df_clust.shape[0]
+                else:
+                    perc = 1
                 df_ech = pl.from_pandas(df_clust.to_pandas()
                                     .groupby("cluster_kmeans", group_keys=False)
-                                    .apply(lambda x: x.sample(frac=0.05, random_state=42))
+                                    .apply(lambda x: x.sample(frac=perc, random_state=42))
                                     )
 
                 ###############################################################
@@ -111,7 +115,7 @@ if st.button("Start clustering"):
             try:
                 data = data.with_columns(pl.Series(name="cluster_kmeans", values=df_clust.select("cluster_kmeans")))
                 # Analyse des variables qualitatives par cluster
-                for col in quali.columns: # protocole, regle, action
+                for col in quali.columns: # protocole, action
                     fig = make_subplots(rows=1, cols=2)
 
                     data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
@@ -141,31 +145,31 @@ if st.button("Start clustering"):
                     st.plotly_chart(fig, use_container_width=True)
 
                 # Analyse de la variable quantitative par cluster
+                for col in quanti.columns: # protocole, rule, action
+                    fig = make_subplots(rows=1, cols=2)
 
-                fig = make_subplots(rows=1, cols=2)
+                    data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
 
-                data_filtered = data.filter(pl.col("cluster_kmeans") == 0)
+                    # Ajouter le premier histogramme
+                    fig.add_trace(
+                        go.Histogram(x=data_filtered[col], name="Cluster 0", marker_color="rebeccapurple"),
+                        row=1, col=1
+                    )
 
-                # Ajouter le premier histogramme
-                fig.add_trace(
-                    go.Histogram(x=data_filtered["portdst"], name="Cluster 0", marker_color="rebeccapurple"),
-                    row=1, col=1
-                )
+                    data_filtered = data.filter(pl.col("cluster_kmeans") == 1)
 
-                data_filtered = data.filter(pl.col("cluster_kmeans") == 1)
+                    # Ajouter le deuxième histogramme
+                    fig.add_trace(
+                        go.Histogram(x=data_filtered[col], name="Cluster 1", marker_color="gold"),
+                        row=1, col=2
+                    )
 
-                # Ajouter le deuxième histogramme
-                fig.add_trace(
-                    go.Histogram(x=data_filtered["portdst"], name="Cluster 1", marker_color="gold"),
-                    row=1, col=2
-                )
-
-                # Mettre à jour la mise en page pour améliorer l'apparence
-                fig.update_layout(
-                    title_text="Histograms of destination ports",
-                    showlegend=True,
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                    # Mettre à jour la mise en page pour améliorer l'apparence
+                    fig.update_layout(
+                        title_text=f"Histograms of {col}",
+                        showlegend=True,
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
 
             except Exception as e:
                 st.error(f"An error occured while doing the data analysis : {e}")
