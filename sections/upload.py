@@ -98,7 +98,9 @@ if uploaded_file is not None:
 
             row_count = st.session_state.parsed_df.height
             if row_count == 0:
-                st.error("No data found in the file.")
+                st.error(
+                    "No data found in the file. Try uncheck the date filter option."
+                )
             else:
                 st.success(
                     f"File parsed and filtered successfully! After filtering, {row_count:,} rows remain."
